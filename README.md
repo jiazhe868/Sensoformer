@@ -1,13 +1,13 @@
-# SourceNet: Physics-Informed Deep Learning for Moment Tensor Inversion
+# Sensoformer: Physics-Informed Deep Learning for Moment Tensor Inversion
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/release/python-390/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 
-**SourceNet** is a state-of-the-art deep learning framework designed to invert earthquake **Moment Tensors (MT)** and **Magnitude ($M_w$)** directly from single-station waveforms.
+**Sensoformer** is a state-of-the-art deep learning framework designed to invert earthquake **Moment Tensors (MT)** and **Magnitude ($M_w$)** directly from single-station waveforms.
 
-By combining a **Siamese 1D-ResNet** for local feature extraction with a **Transformer Encoder** for global event aggregation, SourceNet solves the geometric ambiguity problem inherent in traditional inversion methods. It uniquely integrates high-performance legacy **Fortran** code for physics calculations with modern **PyTorch** deep learning workflows.
+By combining a **Siamese 1D-ResNet** for local feature extraction with a **Transformer Encoder** for global event aggregation, Sensoformer solves the geometric ambiguity problem inherent in traditional inversion methods. It uniquely integrates high-performance legacy **Fortran** code for physics calculations with modern **PyTorch** deep learning workflows.
 
 ---
 
@@ -32,7 +32,7 @@ Models and data are available upon request.
 The project follows a modern `src`-layout for better packaging and testing isolation.
 
 ```text
-SourceNet/
+Sensoformer/
 ├── Makefile                 # Automation entry points (build, test, clean)
 ├── pyproject.toml           # Dependency and package management
 ├── configs/                 # Hydra configuration center
@@ -41,8 +41,8 @@ SourceNet/
 │   ├── data/                # Data paths and augmentation settings
 │   └── training/            # LR, Loss functions, Epochs
 ├── src/
-│   └── sourcenet/           # Core Python package
-│       ├── models/          # Neural Network definitions (SourceNet)
+│   └── sensoformer/           # Core Python package
+│       ├── models/          # Neural Network definitions (Sensoformer)
 │       ├── data/            # Unified Dataset & Collate functions
 │       ├── utils/           # Physics (Beachballs) & Metrics (Focal Loss)
 │       └── ext/             # Fortran extensions (mtdcmp.f)
@@ -65,20 +65,20 @@ SourceNet/
 
 1.  **Clone the repository:**
     ```bash
-    git clone <this_path>/SourceNet.git
-    cd SourceNet
+    git clone <this_path>/Sensoformer.git
+    cd Sensoformer
     ```
 
 2.  **Create a virtual environment (Recommended):**
     ```bash
-    conda create -n sourcenet python=3.9
-    conda activate sourcenet
+    conda create -n sensoformer python=3.9
+    conda activate sensoformer
     ```
 
 3.  **Build and Install:**
     Use the `Makefile` to compile the Fortran extensions and install the package in editable mode.
     ```bash
-    make build    # Compiles src/sourcenet/ext/mtdcmp.f -> mtdcmp.so
+    make build    # Compiles src/sensoformer/ext/mtdcmp.f -> mtdcmp.so
     make install  # Installs python dependencies via pip
     ```
 
@@ -92,7 +92,7 @@ SourceNet/
 
 ## 🏃 Usage
 
-SourceNet uses **Hydra** for configuration management. You can override any parameter from the command line.
+Sensoformer uses **Hydra** for configuration management. You can override any parameter from the command line.
 
 ### 1. Pretraining (Synthetic Data)
 
@@ -110,7 +110,7 @@ Switch to Transfer Learning mode (Focal Loss, Differential Learning Rates) by si
 python scripts/train.py \
     data=real_socal \
     training=finetune \
-    training.pretrained_ckpt=/path/to/best_sourcenet_pretrain.pth
+    training.pretrained_ckpt=/path/to/best_sensoformer_pretrain.pth
 ```
 
 ### 3. Inference & Visualization
@@ -137,7 +137,7 @@ python scripts/inference.py \
 
 Hyperparameters are managed in `configs/`. Key files:
 
-*   **`configs/model/sourcenet.yaml`**:
+*   **`configs/model/sensoformer.yaml`**:
     *   `embed_dim`: Dimension of station embeddings (Default: 128).
     *   `layers`: Number of Transformer layers (Default: 3).
 *   **`configs/training/finetune.yaml`**:

@@ -6,17 +6,17 @@ import logging
 # Ensure we can import from src
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from sourcenet.models.network import SourceNet
+from sensoformer.models.network import Sensoformer
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def verify_sourcenet():
+def verify_sensoformer():
     logger.info("Initializing Model Verification...")
     
     # 1. Define hyperparameters (Simulating the Hydra Config Structure)
-    # The new SourceNet expects a dict with a 'model' key containing specific field names
+    # The new Sensoformer expects a dict with a 'model' key containing specific field names
     mock_cfg = {
         'model': {
             'in_channels': 6,           
@@ -31,7 +31,7 @@ def verify_sourcenet():
     # 2. Instantiate Model
     try:
         # Pass the config dictionary directly, NOT unpacked (**params)
-        model = SourceNet(mock_cfg)
+        model = Sensoformer(mock_cfg)
         model.eval() # Set to eval mode
         logger.info("✅ Model instantiated successfully.")
         total_params = sum(p.numel() for p in model.parameters())
@@ -108,4 +108,4 @@ def verify_sourcenet():
         logger.error(f"❌ Masking logic failed: Padded stations have attention {masked_attn}")
 
 if __name__ == "__main__":
-    verify_sourcenet()
+    verify_sensoformer()

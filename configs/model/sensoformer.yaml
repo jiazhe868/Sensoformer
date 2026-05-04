@@ -1,6 +1,6 @@
-# configs/model/sourcenet.yaml
+# configs/model/sensoformer.yaml
 
-name: sourcenet
+name: sensoformer
 
 # Station Encoder Params
 in_channels: 6              # P/S wave channels

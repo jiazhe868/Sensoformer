@@ -18,5 +18,5 @@ focal_gamma: 1.5    # Focus on hard examples
 
 # Transfer Learning
 # Point this to the output of the pretrain run or a fixed path
-pretrained_ckpt: "./best_sourcenet_pretrain.pth" 
+pretrained_ckpt: "./best_sensoformer_pretrain.pth" 
 ckpt_name: "best_finetuned_model.pth"

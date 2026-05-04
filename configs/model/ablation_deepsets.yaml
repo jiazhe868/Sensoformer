@@ -1,6 +1,6 @@
-# Inherit from base sourcenet but override aggregator
+# Inherit from base sensoformer but override aggregator
 defaults:
-  - sourcenet
+  - sensoformer
 
 # Deepsets logic
 aggregator: deepsets

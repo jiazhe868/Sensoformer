@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from sourcenet.data import SeismicDataset, collate_fn
+from sensoformer.data import SeismicDataset, collate_fn
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')

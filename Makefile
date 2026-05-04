@@ -1,4 +1,4 @@
-# Makefile for SourceNet
+# Makefile for Sensoformer
 # Includes: Compilation of Fortran extensions, Installation, Testing, and Cleaning
 
 # --- Configuration ---
@@ -9,7 +9,7 @@ FC = gfortran
 FFLAGS = -shared -fPIC -O3
 
 # --- Paths ---
-EXT_DIR = src/sourcenet/ext
+EXT_DIR = src/sensoformer/ext
 LIB_NAME = mtdcmp.so
 SRC_NAME = mtdcmp.f
 
@@ -18,7 +18,7 @@ SRC_NAME = mtdcmp.f
 .PHONY: all build clean test install help
 
 help:
-	@echo "SourceNet Engineering Makefile"
+	@echo "Sensoformer Engineering Makefile"
 	@echo "=============================="
 	@echo "make build    : Compile Fortran extensions"
 	@echo "make install  : Install package in editable mode"
@@ -41,7 +41,7 @@ build:
 
 # 2. Install Package
 install:
-	@echo "--> Installing sourcenet in editable mode..."
+	@echo "--> Installing sensoformer in editable mode..."
 	$(PIP) install -e .[dev]
 
 # 3. Run Tests

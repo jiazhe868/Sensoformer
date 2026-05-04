@@ -15,4 +15,4 @@ weight_decay: 1e-5
 loss: mse
 
 # Checkpointing
-ckpt_name: "best_sourcenet_pretrain.pth"
+ckpt_name: "best_sensoformer_pretrain.pth"

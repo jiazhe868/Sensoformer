@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from sourcenet.models.network import SourceNet
+from sensoformer.models.network import Sensoformer
 from omegaconf import OmegaConf
 
 def count_parameters(model):
@@ -16,13 +16,13 @@ def check_params(ff_dim):
             'heads': 4,
             'layers': 3,
             'dropout': 0.1,
-            # 我们将在 SourceNet.__init__ 中手动注入这个值来测试
+            # 我们将在 Sensoformer.__init__ 中手动注入这个值来测试
         }
     })
     
     # 临时实例化模型 (假设你已经应用了支持 feedforward_dim 的修改)
     # 如果用旧代码，这里需要手动修改 network.py 的默认值来测试
-    model = SourceNet(cfg)
+    model = Sensoformer(cfg)
     
     # 强制修改 Transformer 的 FFN 维度 (Hack for calculation without changing class)
     # 注意：这只是为了计算演示，实际必须在 __init__ 里改

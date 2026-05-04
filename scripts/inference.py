@@ -15,16 +15,16 @@ from tqdm import tqdm
 # Ensure src is in python path
 sys.path.append(str(Path(__file__).parent.parent / "src"))
 
-from sourcenet.models.network import SourceNet
-from sourcenet.data.dataset import SeismicDataset, collate_fn
-from sourcenet.ext import MTDecomposer
-from sourcenet.utils.visualization import (
+from sensoformer.models.network import Sensoformer
+from sensoformer.data.dataset import SeismicDataset, collate_fn
+from sensoformer.ext import MTDecomposer
+from sensoformer.utils.visualization import (
     plot_scatter_matrix, 
     plot_beachball_comparison, 
     plot_kagan_histogram
 )
-from sourcenet.utils.physics import kagan_angle 
-from sourcenet.utils.metrics import FocalLossForRegression
+from sensoformer.utils.physics import kagan_angle 
+from sensoformer.utils.metrics import FocalLossForRegression
 
 log = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ def main(cfg: DictConfig):
 
     # 3. Load Model & Weights
     log.info(f"Initializing Model: {cfg.model.name}")
-    model = SourceNet(cfg)
+    model = Sensoformer(cfg)
     
     # Determine Checkpoint Path
     if 'model_path' in cfg and cfg.model_path:
@@ -202,7 +202,7 @@ def main(cfg: DictConfig):
     # B. Beachball Comparison
     log.info("Generating Beachball Comparison (This may take a moment)...")
     try:
-        decomposer = MTDecomposer() # Requires src/sourcenet/ext/mtdcmp.so
+        decomposer = MTDecomposer() # Requires src/sensoformer/ext/mtdcmp.so
         
         # Pass indices 1:6 for MT components (skipping magnitude)
         plot_beachball_comparison(

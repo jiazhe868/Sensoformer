@@ -1,8 +1,8 @@
 # configs/config.yaml
-# Default combinations: default to sourcenet model, synthetic data, pretrain mode
+# Default combinations: default to sensoformer model, synthetic data, pretrain mode
 defaults:
   - _self_
-  - model: sourcenet
+  - model: sensoformer
   - data: synthetic
   - training: pretrain
   - override hydra/job_logging: default

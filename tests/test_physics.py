@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
-from sourcenet.ext import MTDecomposer
-from sourcenet.utils.physics import kagan_angle
+from sensoformer.ext import MTDecomposer
+from sensoformer.utils.physics import kagan_angle
 
 def test_mtdcmp_loading():
     """Ensure the shared library loads correctly."""

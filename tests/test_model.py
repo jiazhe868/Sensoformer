@@ -1,7 +1,7 @@
 import torch
 import pytest
 from omegaconf import OmegaConf
-from sourcenet.models.network import SourceNet
+from sensoformer.models.network import Sensoformer
 
 @pytest.fixture
 def model_cfg():
@@ -18,14 +18,14 @@ def model_cfg():
         }
     })
 
-def test_sourcenet_instantiation(model_cfg):
-    # This should now work because SourceNet.__init__ handles the config object
-    model = SourceNet(model_cfg)
+def test_sensoformer_instantiation(model_cfg):
+    # This should now work because Sensoformer.__init__ handles the config object
+    model = Sensoformer(model_cfg)
     assert isinstance(model, torch.nn.Module)
     assert model.embed_dim == 32
 
-def test_sourcenet_forward_pass(model_cfg):
-    model = SourceNet(model_cfg)
+def test_sensoformer_forward_pass(model_cfg):
+    model = Sensoformer(model_cfg)
     
     # Dummy Batch
     B, S, C, L = 2, 5, 12, 100

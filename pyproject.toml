@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sourcenet"
+name = "sensoformer"
 version = "0.1.0"
 description = "Deep Learning for Moment Tensor Inversion"
 requires-python = ">=3.9"
@@ -44,7 +44,7 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["sourcenet*"]
+include = ["sensoformer*"]
 namespaces = false
 
 [tool.black]

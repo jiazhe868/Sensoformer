@@ -1,6 +1,6 @@
-# Inherit from base sourcenet but override scalar dims
+# Inherit from base sensoformer but override scalar dims
 defaults:
-  - sourcenet
+  - sensoformer
 
 # Setting num_scalar_features to 0 triggers the ablation logic in StationEncoder
 num_scalar_features: 0

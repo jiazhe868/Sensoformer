@@ -3,7 +3,7 @@ import h5py
 import torch
 import numpy as np
 import os
-from sourcenet.data.dataset import SeismicDataset, collate_fn
+from sensoformer.data.dataset import SeismicDataset, collate_fn
 
 @pytest.fixture
 def temp_hdf5(tmp_path):

@@ -12,14 +12,14 @@ import os
 import sys
 from tqdm import tqdm
 import json
-from sourcenet.utils.visualization import plot_learning_curve
+from sensoformer.utils.visualization import plot_learning_curve
 
 # Ensure src is in python path
 sys.path.append(str(Path(__file__).parent.parent / "src"))
 
-from sourcenet.models.network import SourceNet
-from sourcenet.data.dataset import SeismicDataset, collate_fn
-from sourcenet.utils.metrics import FocalLossForRegression
+from sensoformer.models.network import Sensoformer
+from sensoformer.data.dataset import SeismicDataset, collate_fn
+from sensoformer.utils.metrics import FocalLossForRegression
 
 log = logging.getLogger(__name__)
 
@@ -151,7 +151,7 @@ def main(cfg: DictConfig):
 
     # 5. Model Initialization
     log.info(f"Initializing Model: {cfg.model.name}")
-    model = SourceNet(cfg)
+    model = Sensoformer(cfg)
     
     # 6. Mode Handling: Pretrain vs Finetune
     if cfg.training.type == 'finetune':

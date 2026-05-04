@@ -72,7 +72,7 @@ class StationEncoder(nn.Module):
         station_emb = self.final_fc(combined)
         return station_emb.view(B, S, -1)
 
-class SourceNet(nn.Module):
+class Sensoformer(nn.Module):
     """
     Main Model Architecture.
     """
