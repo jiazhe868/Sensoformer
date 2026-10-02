@@ -16,3 +16,9 @@ loss: mse
 
 # Checkpointing
 ckpt_name: "best_sensoformer_pretrain.pth"
+
+# Evaluation & Smoke Test Control
+smoke_test: false
+# Optional scale-invariant orientation loss on the deviatoric moment tensor
+# (smooth Kagan-angle surrogate, OrientationCosineLoss). 0.0 = disabled.
+orientation_loss_weight: 0.0

@@ -4,41 +4,58 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sensoformer"
-version = "0.1.0"
-description = "Deep Learning for Moment Tensor Inversion"
+version = "1.0.0"
+description = "Set-attention inference of earthquake source parameters from variable-geometry seismic networks"
+readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
-  {name = "", email = ""}
+  {name = "Zhe Jia", email = "zjia@ig.utexas.edu"},
+  {name = "Xiaotian (Jim) Zhang"},
+  {name = "Junpeng Li"},
+]
+keywords = ["seismology", "moment-tensor", "set-transformer",
+            "domain-randomization", "sim-to-real"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Physics",
 ]
 
 # Core dependencies required to run the model
-# Using >= versions ensures compatibility with newer environments
 dependencies = [
     "torch>=2.0.0",
     "numpy",
     "scipy",
     "pandas",
     "h5py",
-    "obspy",           # For seismological signal processing
-    "matplotlib",      # For plotting beachballs and curves
-    "tqdm",            # For progress bars
-    "hydra-core>=1.3", # For configuration management (CRITICAL for L5)
-    "omegaconf",
-    "scikit-learn",    # For train_test_split
+    "obspy",                  # Seismological signal processing / beachballs
+    "matplotlib",             # Figures
+    "tqdm",                   # Progress bars
+    "hydra-core>=1.3",        # Configuration management for training
+    "omegaconf>=2.3",
+    "scikit-learn",           # train_test_split
+    "huggingface_hub>=0.23",  # Pretrained weights / dataset distribution
 ]
 
-# Optional dependencies for development, testing, and formatting
 [project.optional-dependencies]
 dev = [
-    "pytest",          # Testing framework
-    "pytest-cov",      # Coverage reporting
-    "black",           # Code formatter
-    "isort",           # Import sorter
-    "flake8",          # Linter
-    "mypy",            # Static type checker
-    "jupyterlab",      # For notebooks
+    "pytest",
+    "pytest-cov",
+    "black",
+    "isort",
+    "flake8",
+    "mypy",
+    "jupyterlab",
 ]
+# Faster multi-GB transfers to/from the Hugging Face Hub
+hub = ["hf_transfer"]
+
+[project.urls]
+Homepage = "https://github.com/jiazhe868/Sensoformer"
+Models = "https://huggingface.co/jiazhe868/sensoformer"
+Datasets = "https://huggingface.co/datasets/jiazhe868/sensoformer-data"
 
 # --- Tool Configuration ---
 
@@ -46,6 +63,9 @@ dev = [
 where = ["src"]
 include = ["sensoformer*"]
 namespaces = false
+
+[tool.setuptools.package-data]
+sensoformer = ["ext/*.f", "ext/*.so"]
 
 [tool.black]
 line-length = 88
@@ -60,7 +80,5 @@ multi_line_output = 3
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra -q"
-testpaths = [
-    "tests",
-]
+testpaths = ["tests"]
 python_files = "test_*.py"

@@ -1,0 +1,31 @@
+# configs/training/real_from_scratch.yaml
+# Real-world training from scratch (no synthetic pretraining)
+
+type: real_from_scratch
+
+epochs: 150
+patience: 50
+val_size: 0.15
+test_size: 0.15
+
+# Optimization Parameters
+lr: 1e-4
+lr_backbone: ${training.lr}
+lr_head: ${training.lr}
+weight_decay: 1e-4
+
+# Loss Function
+loss: focal
+focal_gamma: 1.5
+
+# Model Initialization: Random weights (skip pretraining)
+pretrained_ckpt: null
+ckpt_name: "best_real_from_scratch_model.pth"
+
+# Evaluation & Smoke Test Control
+eval_test: true
+smoke_test: false
+
+
+# Label-efficiency experiments: fraction of the training split to use (1.0 = all)
+train_fraction: 1.0

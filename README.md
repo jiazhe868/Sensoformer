@@ -1,179 +1,206 @@
-# Sensoformer: Physics-Informed Deep Learning for Moment Tensor Inversion
+# Sensoformer
 
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/release/python-390/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+**Set-attention inference of earthquake source parameters from variable-geometry seismic networks.**
 
-**Sensoformer** is a state-of-the-art deep learning framework designed to invert earthquake **Moment Tensors (MT)** and **Magnitude ($M_w$)** directly from single-station waveforms.
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Models on HF](https://img.shields.io/badge/%F0%9F%A4%97%20models-jiazhe868%2Fsensoformer-yellow)](https://huggingface.co/jiazhe868/sensoformer)
+[![Data on HF](https://img.shields.io/badge/%F0%9F%A4%97%20data-sensoformer--data-yellow)](https://huggingface.co/datasets/jiazhe868/sensoformer-data)
 
-By combining a **Siamese 1D-ResNet** for local feature extraction with a **Transformer Encoder** for global event aggregation, Sensoformer solves the geometric ambiguity problem inherent in traditional inversion methods. It uniquely integrates high-performance legacy **Fortran** code for physics calculations with modern **PyTorch** deep learning workflows.
+Sensoformer infers the **moment tensor** and **moment magnitude** of an earthquake
+directly from the waveforms of however many stations happen to have recorded it.
+The station set is treated as an unordered, variable-cardinality **set** — no grid,
+no fixed station list, no interpolation — and the sim-to-real gap is bridged by
+**Physics-Structured Domain Randomization (PSDR)**: pre-training on synthetics whose
+*physics* (velocity model, scattering, noise, network availability) is randomized,
+then fine-tuning on a small real catalog.
 
----
-
-## 🌟 Key Features
-
-*   **Hybrid Computing**: Seamless integration of PyTorch tensors and Fortran-based physics kernels (via `ctypes`) for rigorous Kagan angle evaluation.
-*   **Permutation Invariance**: Transformer-based aggregation allows processing variable numbers of seismic stations dynamically (Dynamic Batching).
-*   **Unified Data Pipeline**: A single, robust `SeismicDataset` handling both Synthetic (Pretraining) and Real (Finetuning) data with on-the-fly augmentation.
-*   **Experiment Management**: Fully configurable experiments using **Hydra**, supporting rapid switching between pretraining and finetuning modes without code changes.
-*   **Production Ready**: Packaged as a standard Python library (`src` layout) with CI/CD-ready Makefiles and unit tests.
-
----
-
-## Models and Data
-
-Models and data are available upon request. 
+On a held-out set of 244 real Southern California events it reaches a **median Kagan
+angle of 19.7°**, which is the uncertainty level of the human-analyst catalog it is
+compared against.
 
 ---
 
-## 🛠️ Project Structure
+## Results at a glance
 
-The project follows a modern `src`-layout for better packaging and testing isolation.
+244 held-out real SoCal events (seed=42 split), all models trained through the
+identical two-stage pipeline. Full tables, CIs and ablations: [docs/RESULTS.md](docs/RESULTS.md).
 
-```text
-Sensoformer/
-├── Makefile                 # Automation entry points (build, test, clean)
-├── pyproject.toml           # Dependency and package management
-├── configs/                 # Hydra configuration center
-│   ├── config.yaml          # Global defaults
-│   ├── model/               # Network architecture params
-│   ├── data/                # Data paths and augmentation settings
-│   └── training/            # LR, Loss functions, Epochs
-├── src/
-│   └── sensoformer/           # Core Python package
-│       ├── models/          # Neural Network definitions (Sensoformer)
-│       ├── data/            # Unified Dataset & Collate functions
-│       ├── utils/           # Physics (Beachballs) & Metrics (Focal Loss)
-│       └── ext/             # Fortran extensions (mtdcmp.f)
-├── scripts/                 # Execution drivers
-│   ├── train.py             # Unified Training/Finetuning script
-│   └── inference.py         # Evaluation & Visualization
-└── tests/                   # Unit and Integration tests
-```
+| Model | Mag MAE | Mean Kagan | Median Kagan |
+| :--- | :---: | :---: | :---: |
+| **Sensoformer** | **0.100** | **23.9°** | **19.7°** |
+| MPNN (GCN, 5-NN graph) | 0.139 | 31.2° | 24.3° |
+| MPNN (GAT) | 0.139 | 30.3° | 23.7° |
+| DeepSets (no interaction) | 0.140 | 35.7° | 29.1° |
+| DeepONet (neural operator) | 0.141 | 35.4° | 28.5° |
+| No synthetic pre-training | 0.185 | 32.9° | 25.2° |
+| MLP on pooled inputs | 0.138 | 41.9° | 38.2° |
+| Linear regression | 0.494 | 41.1° | 37.0° |
 
----
+Other headline findings, all reproducible with this repo:
 
-## 🚀 Installation
-
-### Prerequisites
-*   Python >= 3.9
-*   GFortran (for compiling physics extensions)
-*   CUDA Toolkit (optional, for GPU training)
-
-### Steps
-
-1.  **Clone the repository:**
-    ```bash
-    git clone <this_path>/Sensoformer.git
-    cd Sensoformer
-    ```
-
-2.  **Create a virtual environment (Recommended):**
-    ```bash
-    conda create -n sensoformer python=3.9
-    conda activate sensoformer
-    ```
-
-3.  **Build and Install:**
-    Use the `Makefile` to compile the Fortran extensions and install the package in editable mode.
-    ```bash
-    make build    # Compiles src/sensoformer/ext/mtdcmp.f -> mtdcmp.so
-    make install  # Installs python dependencies via pip
-    ```
-
-4.  **Verify Installation:**
-    Run the unit tests to ensure physics kernels and neural networks are functioning correctly.
-    ```bash
-    make test
-    ```
+- **PSDR shrinks the domain gap by 78%** in embedding space (MMD² 0.721 → 0.157, p = 0.001).
+- **Label efficiency**: PSDR pre-training + 10% of the real labels (25.8° median Kagan)
+  beats training from scratch on 100% of them (31.8°).
+- **Clean synthetics are not enough**: a model pre-trained without any randomization
+  fits idealized simulations almost perfectly (4.4° median Kagan in-domain) yet only
+  reaches 33.6° on real data after the same fine-tuning.
+- **Below the training magnitude range**: zero-shot on M2.5–3.0 events gives 22.5°
+  median Kagan; the magnitude error is a single constant offset (remove it and the
+  residual MAE is 0.10, the in-distribution value).
+- **Calibrated uncertainty**: conformal prediction gives 90% magnitude intervals of
+  ±0.22 and 90% Kagan-angle "orientation balls" of 44.8°, with empirical coverage
+  matching nominal to ±0.005.
 
 ---
 
-## 🏃 Usage
-
-Sensoformer uses **Hydra** for configuration management. You can override any parameter from the command line.
-
-### 1. Pretraining (Synthetic Data)
-
-By default, the system runs in pretraining mode using MSE loss and high learning rates.
+## Install
 
 ```bash
-python scripts/train.py data=synthetic training=pretrain
+git clone https://github.com/jiazhe868/Sensoformer.git
+cd sensoformer
+pip install -e .            # or: pip install -r requirements.txt
+make build                  # compile the Fortran moment-tensor kernel (needs gfortran)
+make test                   # optional: 40+ unit tests
 ```
 
-### 2. Finetuning (Real Data)
+`make build` compiles `src/sensoformer/ext/mtdcmp.f`, which converts moment tensors to
+strike/dip/rake and computes Kagan angles. Without it the model still runs and predicts
+moment tensors; only the strike/dip/rake and Kagan-angle outputs are skipped.
 
-Switch to Transfer Learning mode (Focal Loss, Differential Learning Rates) by simply changing the config group.
+---
+
+## Quickstart
+
+### 1. Inference on prepared data (weights download automatically)
+
+```bash
+# Fetch the pretrained weights (~8 MB) and the real SoCal catalog (0.26 GB)
+python scripts/download_assets.py --weights --datasets socal-real
+
+# Predict: per-event source parameters + metrics + optional catalog/figures
+python scripts/predict.py --input socal-real --out-dir results/demo --figures
+```
+
+Writes `results/demo/predictions.csv` (magnitude, 5 moment-tensor components,
+strike/dip/rake, and — when the input has ground truth — Kagan angle and magnitude
+error), plus `metrics.json` and figures. `make demo` runs exactly this.
+
+### 2. Python API
+
+```python
+from sensoformer import load_pretrained
+
+model = load_pretrained("sensoformer-v3-finetuned", device="cuda")   # cached after first call
+predictions, attention = model(waveforms, features, mask)
+# predictions: (B, 6) = [scaled Mw, Mxx, Myy, Mxy, Mxz, Myz]
+# attention:   (B, S) = per-station pooling weights (interpretable; see docs/ARCHITECTURE.md)
+```
+
+### 3. Your own events
+
+Any HDF5 following [docs/DATA_FORMAT.md](docs/DATA_FORMAT.md) works, with or without
+ground-truth labels:
+
+```bash
+python scripts/predict.py --input my_events.hdf5 --out-dir results/mine --catalog
+```
+
+To go from raw SAC archives to such a file (SCEDC/STP download, phase picks, windowing,
+feature construction), see [docs/DATA_PIPELINE.md](docs/DATA_PIPELINE.md).
+
+### 4. Fine-tune on a new catalog or region
 
 ```bash
 python scripts/train.py \
-    data=real_socal \
-    training=finetune \
-    training.pretrained_ckpt=/path/to/best_sensoformer_pretrain.pth
+    model=sensoformer data=real_socal training=finetune \
+    data.path=/path/to/your_catalog.hdf5 \
+    training.pretrained_ckpt=$(python -c "from sensoformer.hub import resolve_checkpoint; print(resolve_checkpoint('sensoformer-v3-pretrained')[0])") \
+    hydra.run.dir=./outputs/my_finetune
 ```
 
-### 3. Inference & Visualization
-
-Run evaluation on the test set to generate scatter plots and beachball comparisons.
-
-> **Note:** If `model_path` is not defined in your `config.yaml`, use `+model_path` to append it dynamically.
-
-```bash
-python scripts/inference.py \
-    data=real_socal \
-    +model_path=outputs/debug_finetune/best_finetuned_model.pth \
-    device='cuda'
-```
-
-**Output Artifacts (saved in `outputs/YYYY-MM-DD/HH-MM-SS/`):**
-*   `scatter_results.pdf`: Comparison of predicted vs true MT components.
-*   `beachball_grid.pdf`: Side-by-side comparison of focal mechanisms with Kagan angle annotation.
-*   `kagan_histogram.pdf`: Distribution of angular errors.
+Full walkthrough, hyperparameters and pitfalls: [docs/FINETUNING.md](docs/FINETUNING.md).
 
 ---
 
-## ⚙️ Configuration
+## Pretrained models and datasets
 
-Hyperparameters are managed in `configs/`. Key files:
+Weights and data are hosted on the Hugging Face Hub (too large for git) and are fetched
+on demand into a local cache. Both `scripts/*.py` and the Python API accept either a
+registry name or a plain local path, so the repo also works fully offline.
 
-*   **`configs/model/sensoformer.yaml`**:
-    *   `embed_dim`: Dimension of station embeddings (Default: 128).
-    *   `layers`: Number of Transformer layers (Default: 3).
-*   **`configs/training/finetune.yaml`**:
-    *   `lr_backbone`: Learning rate for the CNN encoder (Default: 2e-6).
-    *   `lr_head`: Learning rate for regression heads (Default: 2e-6).
-    *   `focal_gamma`: Focusing parameter for robust regression (Default: 1.5).
+| Registry name | What it is | Size |
+| :--- | :--- | :---: |
+| `sensoformer-v3-finetuned` | PSDR pre-trained **+ real fine-tuned** — use this for inference | 8 MB |
+| `sensoformer-v3-pretrained` | PSDR synthetic pre-trained — use this to fine-tune on new data | 8 MB |
+| `socal-real` | 2,435 real SoCal events (M≥3.0) with analyst mechanisms | 0.26 GB |
+| `synthetic-psdr` | ~100k PSDR synthetic events on real station geometries | 11.4 GB |
+| `synthetic-clean` | ~50k clean synthetics (no randomization), for the baseline | 5.4 GB |
 
-To change the batch size dynamically:
 ```bash
-python scripts/train.py data.batch_size=128
+python scripts/download_assets.py --list      # show everything available
 ```
+
+See [docs/HUGGINGFACE.md](docs/HUGGINGFACE.md) for the hosting layout and, for
+maintainers, how to publish new assets.
 
 ---
 
-## 🧪 Development
+## Repository map
 
-We adhere to strict engineering standards.
-
-*   **Linting**: Code is formatted using `black` and imports sorted by `isort`.
-*   **Testing**: All core logic (Physics, Dataset, Model) is covered by `pytest`.
-
-To run the full test suite during development:
-```bash
-make test
+```text
+sensoformer/
+├── src/sensoformer/
+│   ├── hub.py              # weight/dataset resolution + load_pretrained()
+│   ├── models/             # Sensoformer + every baseline in the paper
+│   │   ├── network.py          Sensoformer (set transformer + attention pooling)
+│   │   ├── gnn.py              MPNN baselines (GCN and GAT message passing)
+│   │   ├── deeponet.py         Neural-operator baseline
+│   │   ├── simple_baselines.py Linear / MLP on pooled inputs
+│   │   └── posterior_flow.py   Conditional flow for amortized posteriors
+│   ├── data/dataset.py     # variable-station dataset + dynamic-padding collate
+│   ├── utils/              # physics (Kagan, beachballs), losses, figures
+│   └── ext/                # Fortran moment-tensor kernel (mtdcmp.f)
+├── scripts/
+│   ├── predict.py          # ← inference CLI
+│   ├── train.py            # ← pre-training / fine-tuning (Hydra)
+│   ├── download_assets.py  # fetch weights + data from the Hub
+│   ├── preprocessing/      # raw SAC → model-ready HDF5 (synthetic + real)
+│   └── data_acquisition/   # SCEDC/STP download, phase picks, catalog merge
+├── configs/                # Hydra configs (model / data / training)
+├── docs/                   # see below
+└── tests/                  # unit + data-agreement tests
 ```
 
-To clean build artifacts:
-```bash
-make clean
-```
+## Documentation
+
+| Document | Contents |
+| :--- | :--- |
+| [QUICKSTART.md](docs/QUICKSTART.md) | The 5-minute paths for inference and fine-tuning |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Exact tensor shapes, QKV dimensions, attention pooling, parameter counts |
+| [DATA_FORMAT.md](docs/DATA_FORMAT.md) | HDF5 schema — what you need to bring your own data |
+| [DATA_PIPELINE.md](docs/DATA_PIPELINE.md) | Raw SAC acquisition → preprocessing → HDF5, for both domains |
+| [FINETUNING.md](docs/FINETUNING.md) | Fine-tuning and pre-training recipes, hyperparameters, diagnostics |
+| [INFERENCE.md](docs/INFERENCE.md) | `predict.py` reference, outputs, catalog format, how to read the numbers |
+| [RESULTS.md](docs/RESULTS.md) | Full benchmark tables, ablations, uncertainty and generalization studies |
+| [HUGGINGFACE.md](docs/HUGGINGFACE.md) | Asset hosting; publishing new weights/datasets |
+| [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Known pitfalls and their fixes |
 
 ---
 
-## 📄 License
+## Citation
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+```bibtex
+@article{jia2026sensoformer,
+  title   = {Sensoformer: Robust Sim-to-Real Inference on Variable-Geometry
+             Sensor Sets via Physics-Structured Randomization},
+  author  = {Jia, Zhe and Zhang, Xiaotian and Li, Junpeng},
+  year    = {2026}
+}
+```
 
----
+Machine-readable metadata is in [CITATION.cff](CITATION.cff).
 
+## License
+
+MIT — see [LICENSE](LICENSE).

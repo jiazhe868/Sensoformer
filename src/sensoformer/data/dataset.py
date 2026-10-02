@@ -7,6 +7,17 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Empirically verified layout of the 20-D scalar feature vector (see
+# socal_mxyz_data_rtz_lp2_ampr_ps_wlola.hdf5 and the matching PSDR synthetic
+# datasets, which share the same preprocessing pipeline):
+#   0: distance, 1: azimuth, 2: station longitude, 3: station latitude,
+#      4: event depth                                        -> geometry
+#   5-16: P-wave (6) + S-wave (6) max-amplitude features      -> amplitude
+#   17-19: P/S amplitude ratio features (3, per R/T/Z)        -> amplitude
+GEOMETRY_FEATURE_INDICES = list(range(0, 5))
+AMPLITUDE_FEATURE_INDICES = list(range(5, 20))
+
+
 class SeismicDataset(Dataset):
     """
     Unified dataset for Seismic Waveforms (Synthetic & Real).
@@ -27,8 +38,11 @@ class SeismicDataset(Dataset):
             event_ids: List of event IDs to include.
             mode: 'train', 'val', or 'test'.
             augmentation: Whether to apply data augmentation (noise, dropouts).
-            config: Dictionary containing hyperparameters. 
+            config: Dictionary containing hyperparameters.
                     e.g. {'max_stations': 50, 'noise_level': 0.05}
+                    Set 'zero_amplitude_features': True to zero out the
+                    amplitude-derived scalar features (AMPLITUDE_FEATURE_INDICES),
+                    keeping only geometry/distance features, for ablation studies.
         """
         self.hdf5_path = hdf5_path
         self.event_ids = event_ids
@@ -40,7 +54,8 @@ class SeismicDataset(Dataset):
         self.max_stations = self.cfg.get('max_stations', 50)
         self.min_stations_keep = self.cfg.get('min_stations_keep', 30)
         self.noise_level = self.cfg.get('noise_level', 0.05)
-        
+        self.zero_amplitude_features = bool(self.cfg.get('zero_amplitude_features', False))
+
         self.h5f: Optional[h5py.File] = None
         
         logger.info(f"Dataset init: {len(self.event_ids)} events. Mode={mode}, Aug={augmentation}")
@@ -67,7 +82,11 @@ class SeismicDataset(Dataset):
             # Shapes: Waveforms (N_sta, 12, Time), Features (N_sta, Feat_dim)
             waveforms = group['waveforms'][:]  
             features = group['features'][:]    
-            
+
+            # if waveforms.shape[0] > self.max_stations:
+            #     waveforms = waveforms[:self.max_stations]
+            #     features = features[:self.max_stations]
+
             # 2. Station Selection Logic
             total_stations = waveforms.shape[0]
             indices = np.arange(total_stations)
@@ -95,6 +114,11 @@ class SeismicDataset(Dataset):
             waveforms = waveforms[indices]
             features = features[indices]
 
+            # 2.5 Optional Ablation: zero out amplitude-derived scalar features,
+            # keeping only geometry/distance features (see AMPLITUDE_FEATURE_INDICES).
+            if self.zero_amplitude_features:
+                features[:, AMPLITUDE_FEATURE_INDICES] = 0.0
+
             # 3. Waveform Augmentation (Noise Injection)
             if self.mode == 'train' and self.augmentation:
                 signal_std = waveforms.std()
@@ -105,19 +129,22 @@ class SeismicDataset(Dataset):
                     waveforms += noise
 
             # 4. Target Extraction & Normalization
-            attrs = group.attrs
-            
-            # Magnitude Normalization: Map [2.0, 8.0] -> [-1.0, 1.0]
-            # (val - min) / (max - min) * 2 - 1
-            mag = attrs['magnitude']
-            scaled_mag = 2 * (mag - 2.0) / (8.0 - 2.0) - 1.0
-            
-            # Moment Tensor Components (Assuming normalized Mxx..Myz)
             # Order: Mag, Mxx, Myy, Mxy, Mxz, Myz
+            attrs = group.attrs
             mt_keys = ['Mxx', 'Myy', 'Mxy', 'Mxz', 'Myz']
-            mt_values = [attrs[k] for k in mt_keys]
-            
-            targets = np.array([scaled_mag] + mt_values, dtype=np.float32)
+
+            if 'magnitude' in attrs and all(k in attrs for k in mt_keys):
+                # Magnitude Normalization: Map [2.0, 8.0] -> [-1.0, 1.0]
+                # (val - min) / (max - min) * 2 - 1
+                mag = attrs['magnitude']
+                scaled_mag = 2 * (mag - 2.0) / (8.0 - 2.0) - 1.0
+                mt_values = [attrs[k] for k in mt_keys]
+                targets = np.array([scaled_mag] + mt_values, dtype=np.float32)
+            else:
+                # Unlabeled event: pure-inference HDF5 files need not carry
+                # ground-truth attributes. NaN targets let downstream code
+                # detect the absence of labels and skip error metrics.
+                targets = np.full(6, np.nan, dtype=np.float32)
 
             # 5. Return Tensors
             # Note: Mask is generated in collate_fn, returning placeholder here

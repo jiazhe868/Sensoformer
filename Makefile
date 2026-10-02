@@ -15,7 +15,7 @@ SRC_NAME = mtdcmp.f
 
 # --- Targets ---
 
-.PHONY: all build clean test install help
+.PHONY: all build clean test install help weights demo lint
 
 help:
 	@echo "Sensoformer Engineering Makefile"
@@ -24,6 +24,8 @@ help:
 	@echo "make install  : Install package in editable mode"
 	@echo "make test     : Run unit tests with pytest"
 	@echo "make clean    : Remove build artifacts and compiled libraries"
+	@echo "make weights  : Download pretrained weights from the Hugging Face Hub"
+	@echo "make demo     : Download weights + SoCal data, then run inference"
 	@echo "make all      : Clean, Build, Install, and Test"
 
 all: clean build install test
@@ -56,3 +58,16 @@ clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type d -name "*.egg-info" -exec rm -rf {} +
 	rm -rf build/ dist/ .pytest_cache/
+# 5. Fetch pretrained weights (~8 MB each)
+weights:
+	@echo "--> Downloading pretrained weights..."
+	$(PYTHON) scripts/download_assets.py --weights
+
+# 6. End-to-end demo: weights + the 0.26 GB real catalog + inference
+demo:
+	@echo "--> Downloading assets (this pulls ~0.26 GB of data)..."
+	$(PYTHON) scripts/download_assets.py --weights --datasets socal-real
+	@echo "--> Running inference on 200 events..."
+	$(PYTHON) scripts/predict.py --input socal-real --out-dir results/demo \
+		--limit 200 --figures
+	@echo "--> See results/demo/{predictions.csv,metrics.json}"

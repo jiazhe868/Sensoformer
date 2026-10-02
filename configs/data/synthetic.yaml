@@ -1,14 +1,22 @@
 # configs/data/synthetic.yaml
-
-name: synthetic
-path: "/home/staff/zjia/zjia/temp_hdf5/syn_mt_data_realgeom_realvn_10w_ps_wcoda_wlola.hdf5"
+# PSDR synthetic pre-training domain (~100k events on real station geometries).
+#
+# `path` resolves $SENSOFORMER_DATA (default ./data); fetch it with
+#   python scripts/download_assets.py --datasets synthetic-psdr
+name: synthetic_psdr_data
+path: "${oc.env:SENSOFORMER_DATA,./data}/syn_mt_data_realgeom_realvn_10w_ps_wcoda_wlola.hdf5"
 
 # Loader Params
 batch_size: 512
-num_workers: 32
+num_workers: 8
 
-# Augmentation Strategy
+# Augmentation Strategy: the training-time PSDR modules
+# (variable-geometry station masking + extra noise). The physics-level
+# randomization (velocity models, scattering, real noise, coda) is baked into
+# the HDF5 by scripts/preprocessing/ -- see docs/DATA_PIPELINE.md.
 aug_params:
+  augmentation: true
   max_stations: 50
   min_stations_keep: 30
-  noise_level: 0.01         # Additional Gaussian noise other than the real noise for synthetic training.
+  noise_level: 0.01
+  zero_amplitude_features: false

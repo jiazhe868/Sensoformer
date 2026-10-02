@@ -1,0 +1,8 @@
+# Trivial baseline: small MLP on masked-mean-pooled raw inputs
+# (flattened 12x101 waveforms + 20 scalar features -> 256 -> 128 -> 6).
+name: mlp_baseline
+in_channels: 6
+num_scalar_features: 20
+waveform_len: 101
+hidden_dim: 256
+dropout: 0.1

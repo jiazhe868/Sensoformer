@@ -50,3 +50,10 @@ venv.bak/
 .vscode/
 .idea/
 *.swp
+
+# --- Release assets & run outputs (fetched/produced locally) ---
+data/
+results/
+release_assets/
+*.so.bak
+.hydra/

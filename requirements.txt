@@ -1,0 +1,14 @@
+# Runtime dependencies (see pyproject.toml for the authoritative list).
+#   pip install -r requirements.txt
+torch>=2.0.0
+numpy
+scipy
+pandas
+h5py
+obspy
+matplotlib
+tqdm
+hydra-core>=1.3
+omegaconf>=2.3
+scikit-learn
+huggingface_hub>=0.23

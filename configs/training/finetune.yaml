@@ -18,5 +18,16 @@ focal_gamma: 1.5    # Focus on hard examples
 
 # Transfer Learning
 # Point this to the output of the pretrain run or a fixed path
-pretrained_ckpt: "./best_sensoformer_pretrain.pth" 
+pretrained_ckpt: "./best_sensoformer_pretrain.pth"
 ckpt_name: "best_finetuned_model.pth"
+
+# Evaluation & Smoke Test Control
+eval_test: true
+smoke_test: false
+
+# Label-efficiency experiments: fraction of the training split to use (1.0 = all)
+train_fraction: 1.0
+
+# Optional scale-invariant orientation loss on the deviatoric moment tensor
+# (smooth Kagan-angle surrogate, OrientationCosineLoss). 0.0 = disabled.
+orientation_loss_weight: 0.0

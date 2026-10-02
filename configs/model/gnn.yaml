@@ -1,0 +1,25 @@
+# configs/model/gnn.yaml
+# GNN (Graph Attention Network) baseline for Sensoformer.
+# Uses the identical StationEncoder as Sensoformer; replaces the Transformer
+# aggregator with stacked GAT layers over a dynamically constructed graph.
+
+name: gnn
+
+# Station Encoder Params (must match sensoformer.yaml)
+in_channels: 6              # P/S wave channels fed into each CNN tower
+num_scalar_features: 20     # Dist, Az, amplitudes, amp-ratios, etc.
+
+# Graph construction
+graph_type: knn             # "knn" | "full"  (knn recommended)
+k_neighbors: 5              # Number of nearest neighbours (KNN only)
+coord_feature_indices:      # Which features[i] columns hold (dist, az_deg)
+  - 0
+  - 1
+
+# GAT Params
+embed_dim: 128              # Node feature dimension (same as Sensoformer)
+heads: 4                    # Number of attention heads per GAT layer
+layers: 3                   # Number of stacked GAT layers
+
+# Regularisation
+dropout: 0.1

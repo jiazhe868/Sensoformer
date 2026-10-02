@@ -1,0 +1,21 @@
+# configs/model/deeponet.yaml
+# DeepONet baseline for Sensoformer.
+#
+# Handles irregular station distributions (no uniform grid required).
+# Branch Net: StationEncoder + masked attention pooling + MLP → latent vector p
+# Trunk Net:  learnable categorical embedding per output component + MLP → basis functions
+# Output:     dot(branch, trunk) + bias  →  Tanh  →  6 values in [-1, 1]
+
+name: deeponet
+
+# Station Encoder params (must match sensoformer.yaml)
+in_channels: 6              # Channels per P/S wave type fed to each CNN tower
+num_scalar_features: 20     # Dist, Az, amplitudes, amplitude-ratios, etc.
+
+# Shared latent dimension p for the DeepONet dot product.
+# branch_dim defaults to embed_dim when omitted.
+embed_dim: 128              # Station embedding dimension (output of StationEncoder)
+branch_dim: 128             # Latent dimension p
+
+# Regularisation
+dropout: 0.1

@@ -1,0 +1,32 @@
+# configs/model/mpnn.yaml
+# MPNN baseline for Sensoformer: message passing over a K-nearest-neighbour
+# station graph using a plain GCN layer (Kipf & Welling, ICLR 2017) -- fixed
+# symmetric-normalized aggregation, no learned attention. Deliberately not
+# GAT: Sensoformer already relies on attention (Transformer + attention
+# pooling), so an attention-based GNN baseline would confound "graph
+# structure" with "attention mechanism". This isolates the graph-structure
+# effect.
+
+name: gnn
+
+# Station Encoder Params (must match sensoformer.yaml)
+in_channels: 6              # P/S wave channels fed into each CNN tower
+num_scalar_features: 20     # Dist, Az, amplitudes, amp-ratios, etc.
+
+# Graph construction
+graph_type: knn             # 5-nearest-neighbour graph
+k_neighbors: 5
+coord_feature_indices:      # Which features[i] columns hold (dist, az_deg)
+  - 0
+  - 1
+
+# Message-passing layer type
+conv_type: gcn               # Plain GCN, no attention (see DenseGCNLayer)
+
+# Params
+embed_dim: 128               # Node feature dimension (same as Sensoformer)
+heads: 4                     # Unused when conv_type=gcn (GCN has no heads)
+layers: 3                    # Number of stacked GCN layers
+
+# Regularisation
+dropout: 0.1

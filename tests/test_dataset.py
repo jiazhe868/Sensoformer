@@ -3,7 +3,9 @@ import h5py
 import torch
 import numpy as np
 import os
-from sensoformer.data.dataset import SeismicDataset, collate_fn
+from sensoformer.data.dataset import (
+    SeismicDataset, collate_fn, GEOMETRY_FEATURE_INDICES, AMPLITUDE_FEATURE_INDICES
+)
 
 @pytest.fixture
 def temp_hdf5(tmp_path):
@@ -56,5 +58,43 @@ def test_collate_fn(temp_hdf5):
     # The mask should sum to the number of stations for that event
     real_station_counts = sorted([item[0].shape[0] for item in batch_list], reverse=True)
     mask_sums = mask_batch.sum(dim=1).tolist()
-    
+
     assert mask_sums == real_station_counts
+
+
+def test_zero_amplitude_features_keeps_geometry(temp_hdf5):
+    """Zeroing amplitude features must zero exactly cols 5-19 and leave cols 0-4 untouched."""
+    ids = [f"ev_{i}" for i in range(10)]
+
+    with h5py.File(temp_hdf5, 'r') as f:
+        raw_features = {eid: f[eid]['features'][:].copy() for eid in ids}
+
+    dataset = SeismicDataset(
+        temp_hdf5, ids, mode='test', augmentation=False,
+        config={'zero_amplitude_features': True}
+    )
+
+    for idx, eid in enumerate(ids):
+        _, ft, _, _, returned_id = dataset[idx]
+        assert returned_id == eid
+        ft = ft.numpy()
+
+        # Amplitude columns must be exactly zero
+        assert np.allclose(ft[:, AMPLITUDE_FEATURE_INDICES], 0.0)
+
+        # Geometry columns must be untouched
+        assert np.allclose(ft[:, GEOMETRY_FEATURE_INDICES], raw_features[eid][:, GEOMETRY_FEATURE_INDICES])
+
+
+def test_zero_amplitude_features_default_off(temp_hdf5):
+    """Default behavior (flag unset) must leave all 20 features untouched."""
+    ids = [f"ev_{i}" for i in range(10)]
+
+    with h5py.File(temp_hdf5, 'r') as f:
+        raw_features = {eid: f[eid]['features'][:].copy() for eid in ids}
+
+    dataset = SeismicDataset(temp_hdf5, ids, mode='test', augmentation=False)
+
+    for idx, eid in enumerate(ids):
+        _, ft, _, _, _ = dataset[idx]
+        assert np.allclose(ft.numpy(), raw_features[eid])

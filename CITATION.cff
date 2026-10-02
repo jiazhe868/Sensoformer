@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+title: "Sensoformer: Robust Sim-to-Real Inference on Variable-Geometry Sensor Sets via Physics-Structured Randomization"
+message: "If you use this software or the released models, please cite the paper."
+type: software
+authors:
+  - family-names: Jia
+    given-names: Zhe
+    affiliation: "Institute for Geophysics, The University of Texas at Austin"
+    email: zjia@ig.utexas.edu
+  - family-names: Zhang
+    given-names: Xiaotian
+    affiliation: "Institute for Geophysics, The University of Texas at Austin"
+  - family-names: Li
+    given-names: Junpeng
+    affiliation: "Institute for Geophysics, The University of Texas at Austin"
+license: MIT
+repository-code: "https://github.com/jiazhe868/Sensoformer"
+keywords:
+  - seismology
+  - moment tensor inversion
+  - set transformer
+  - domain randomization
+  - sim-to-real

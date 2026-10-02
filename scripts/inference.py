@@ -148,6 +148,9 @@ def main(cfg: DictConfig):
     pred_mag = (all_preds[:, 0] + 1) / 2 * (MAX_MAG - MIN_MAG) + MIN_MAG
     true_mag = (all_targets[:, 0] + 1) / 2 * (MAX_MAG - MIN_MAG) + MIN_MAG
     
+    mag_mae = np.mean(np.abs(pred_mag - true_mag))
+    log.info(f"Magnitude MAE: {mag_mae:.4f}")
+    
     # Combine denormalized mag with raw MT components (MT is already normalized -1 to 1)
     plot_preds = np.column_stack([pred_mag, all_preds[:, 1:]])
     plot_targets = np.column_stack([true_mag, all_targets[:, 1:]])

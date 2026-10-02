@@ -1,0 +1,33 @@
+# configs/model/sensoformer_geo.yaml
+# Sensoformer + continuous relative-geometry attention bias.
+#
+# Identical to sensoformer.yaml except that every self-attention layer receives
+# an additive per-head logit bias b_h(g_i, g_j) computed by a small MLP from
+# pairwise relative geometry (distance difference, sin/cos azimuth difference,
+# lon/lat offsets, inter-station separation). See GeometryAttentionBias in
+# src/sensoformer/models/network.py. The bias MLP's output layer is
+# zero-initialised, so training starts from the exact unbiased baseline.
+
+name: sensoformer
+
+# Station Encoder Params
+in_channels: 6              # P/S wave channels
+num_scalar_features: 20     # Dist, Az, amps, amp ratios, etc.
+
+# Transformer Params
+embed_dim: 128              # Maps to 'station_feature_dim'
+heads: 4                    # Maps to 'num_heads'
+layers: 3                   # Maps to 'num_layers'
+
+# Regularization
+dropout: 0.1
+
+# Geometry-conditioned attention bias
+geometry_bias: true
+geometry_bias_params:
+  dist_index: 0             # features[:, 0] = source-station distance (km)
+  az_index: 1               # features[:, 1] = source-station azimuth (deg)
+  lon_index: 2              # features[:, 2] = station longitude
+  lat_index: 3              # features[:, 3] = station latitude
+  hidden_dim: 32
+  dist_scale: 100.0         # distance normalisation (km)

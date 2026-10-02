@@ -10,15 +10,28 @@ from torch.utils.data import DataLoader
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from sensoformer.data import SeismicDataset, collate_fn
+from sensoformer.hub import resolve_dataset
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # --- CONFIGURATION ---
-# Replace these with your actual file paths
-SYN_HDF5 = "/home/staff/zjia/zjia/temp_hdf5/syn_mt_data_realgeom_realvn_10w_ps_wcoda_wlola.hdf5"
-REAL_HDF5 = "/dt3/zjia/temp_hdf5/socal_mxyz_data_rtz_lp2_ampr_ps_wlola.hdf5"
+# Registry names resolve through $SENSOFORMER_DATA (default ./data) and fall
+# back to the Hugging Face Hub; override with explicit paths or the
+# SENSOFORMER_SYN_HDF5 / SENSOFORMER_REAL_HDF5 environment variables.
+def _resolve(env_var, registry_name):
+    explicit = os.environ.get(env_var)
+    if explicit:
+        return explicit
+    try:
+        return str(resolve_dataset(registry_name))
+    except Exception as exc:
+        logger.warning("Could not resolve %s (%s): %s", registry_name, env_var, exc)
+        return ""
+
+SYN_HDF5 = _resolve("SENSOFORMER_SYN_HDF5", "synthetic-psdr")
+REAL_HDF5 = _resolve("SENSOFORMER_REAL_HDF5", "socal-real")
 
 def get_first_n_keys(hdf5_path, n=100):
     with h5py.File(hdf5_path, 'r') as f:

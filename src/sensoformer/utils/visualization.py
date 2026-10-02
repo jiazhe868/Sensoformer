@@ -308,8 +308,8 @@ def plot_kagan_histogram(
         kagan_angles: 1D numpy array of Kagan angles in degrees.
         save_path: Optional path to save the figure.
     """
-    fig, ax = plt.subplots(figsize=(5, 5))
-    
+    fig, ax = plt.subplots(figsize=(6.5, 6))
+
     # Statistics
     mean_val = np.mean(kagan_angles)
     median_val = np.median(kagan_angles)
@@ -322,18 +322,20 @@ def plot_kagan_histogram(
     )
     
     # Vertical lines for stats
-    ax.axvline(mean_val, color='red', linestyle='--', linewidth=1.5, label=f'Mean: {mean_val:.1f}°')
-    ax.axvline(median_val, color='green', linestyle='-', linewidth=1.5, label=f'Median: {median_val:.1f}°')
-    
+    ax.axvline(mean_val, color='red', linestyle='--', linewidth=2.5, label=f'Mean: {mean_val:.1f}°')
+    ax.axvline(median_val, color='green', linestyle='-', linewidth=2.5, label=f'Median: {median_val:.1f}°')
+
     # Styling
-    ax.set_xlabel('Kagan Angle (degrees)')
-    ax.set_ylabel('Count')
-    ax.set_title('Error Distribution of Focal Mechanisms')
+    ax.set_xlabel('Kagan Angle (degrees)', fontsize=18)
+    ax.set_ylabel('Count', fontsize=18)
+    ax.set_title('Error Distribution of Focal Mechanisms', fontsize=18)
+    ax.tick_params(axis='both', labelsize=15)
     ax.set_xlim(0, 180)
     ax.grid(True, linestyle=':', alpha=0.5)
-    
+
     # Legend
-    ax.legend(loc='upper right', frameon=True, fancybox=True, framealpha=0.9)
+    ax.legend(loc='upper right', frameon=True, fancybox=True, framealpha=0.9,
+              fontsize=15)
     
     plt.tight_layout()
     if save_path:

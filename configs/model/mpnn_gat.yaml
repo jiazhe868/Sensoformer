@@ -1,0 +1,30 @@
+# configs/model/mpnn_gat.yaml
+# GAT variant of the MPNN baseline: message passing over the same
+# 5-nearest-neighbour station graph, but with learned attention aggregation
+# (DenseGATLayer, Velickovic et al., ICLR 2018) instead of the fixed
+# symmetric-normalized GCN aggregation. Complements mpnn.yaml: comparing the
+# two isolates the contribution of attention WITHIN the graph baseline.
+
+name: gnn
+
+# Station Encoder Params (must match sensoformer.yaml)
+in_channels: 6              # P/S wave channels fed into each CNN tower
+num_scalar_features: 20     # Dist, Az, amplitudes, amp-ratios, etc.
+
+# Graph construction
+graph_type: knn             # 5-nearest-neighbour graph
+k_neighbors: 5
+coord_feature_indices:      # Which features[i] columns hold (dist, az_deg)
+  - 0
+  - 1
+
+# Message-passing layer type
+conv_type: gat               # Learned attention aggregation (DenseGATLayer)
+
+# Params
+embed_dim: 128               # Node feature dimension (same as Sensoformer)
+heads: 4                     # GAT attention heads
+layers: 3                    # Number of stacked GAT layers
+
+# Regularisation
+dropout: 0.1

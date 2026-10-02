@@ -61,6 +61,15 @@ class MTDecomposer:
             logger.error(f"Failed to load shared library: {e}")
             self.lib = None
 
+    @property
+    def is_available(self) -> bool:
+        """True if the compiled Fortran kernel was loaded successfully.
+
+        When False, mt_to_sdr() returns zeros; callers should skip
+        strike/dip/rake and Kagan-angle computations (run `make build`).
+        """
+        return self.lib is not None
+
     def mt_to_sdr(self, mt: NDArray[np.float64]) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
         """
         Convert Moment Tensor to Strike, Dip, Rake.

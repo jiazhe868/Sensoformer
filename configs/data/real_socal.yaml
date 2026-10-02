@@ -1,15 +1,21 @@
 # configs/data/real_socal.yaml
-
+# Real Southern California catalog: the fine-tuning / evaluation domain.
+#
+# `path` resolves $SENSOFORMER_DATA (default ./data), so after
+#   python scripts/download_assets.py --datasets socal-real
+# this config works unchanged. Override explicitly with:
+#   python scripts/train.py data=real_socal data.path=/my/file.hdf5
 name: real_socal_data
-path: "/dt3/zjia/temp_hdf5/socal_mxyz_data_rtz_lp2_ampr_ps_wlola.hdf5"
+path: "${oc.env:SENSOFORMER_DATA,./data}/socal_mxyz_data_rtz_lp2_ampr_ps_wlola.hdf5"
 
 # Loader Params
 batch_size: 64              # Smaller batch size for real data refinement
-num_workers: 16             # Adjust based on CPU load
+num_workers: 8              # Raise on machines with many cores
 
-# Augmentation Strategy
+# Augmentation Strategy (training-time part of PSDR; see docs/DATA_PIPELINE.md)
 aug_params:
   augmentation: true
   max_stations: 50
   min_stations_keep: 30     # Keep enough stations to maintain network geometry
-  noise_level: 0.03         # Gaussian noise injection for robustness
+  noise_level: 0.03         # Extra Gaussian noise for robustness
+  zero_amplitude_features: false   # Ablation: drop amplitude-derived scalars
