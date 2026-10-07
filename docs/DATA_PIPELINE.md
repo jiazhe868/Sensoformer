@@ -48,11 +48,77 @@ The real-data SAC archives are fetched from SCEDC with the STP client
 | 3. Insert analyst picks into SAC headers | `03_add_picks_to_sac.sh {evid}.dat ...` | `t1`/`t2` headers set |
 | 4. Merge catalog with YSH mechanisms | `merge_catalog_mechanisms.py` | `events_wmeca.dat` |
 
+Steps 1–3 fetch waveforms; the focal mechanisms themselves come from a separate
+catalog file you must download — see **Obtaining the YHS focal-mechanism
+catalog** just below.
+
 Requirements: `stp`, `sac`, `gawk` on PATH; network access to SCEDC for
 steps 1–2. Step 4 substitutes the **auxiliary nodal plane** whenever the
 catalog rake falls outside [−90°, 90°] (the moment tensor is invariant under
 this exchange — verified by `tests/test_acquisition_agreement.py`), so all
 stored rakes follow the convention assumed downstream.
+
+### Obtaining the YHS focal-mechanism catalog (`ysh_all.log`)
+
+Several steps below take a `--catalog` file, referred to throughout as
+`ysh_all.log`. This is the **Yang–Hauksson–Shearer (YHS) focal-mechanism catalog
+for Southern California**, produced with the HASH first-motion method and
+distributed by the Southern California Earthquake Data Center (SCEDC).
+
+**It is third-party data and is deliberately not redistributed in this
+repository.** Download it yourself from SCEDC:
+
+- Catalog page: <https://scedc.caltech.edu/data/alt-2011-yang-hauksson-shearer.html>
+- SCEDC data portal: <https://scedc.caltech.edu/data/>
+
+The published catalog covers 1981–2010 (Yang, Hauksson & Shearer, 2012,
+*BSSA* 102(3), 1179–1194, [doi:10.1785/0120110311](https://doi.org/10.1785/0120110311));
+SCEDC distributes updated versions extending to the present. The file used in
+this work spans 1981–2024. Any file with the column layout below works — the
+code never assumes a particular time span or region, so an equivalent catalog
+for another network can be substituted.
+
+If you use this catalog, cite Yang et al. (2012) and acknowledge SCEDC.
+
+#### Expected column layout
+
+Whitespace-separated, **at least 21 columns**, one earthquake per line:
+
+| Col | Content | Used by this code |
+| :---: | :--- | :--- |
+| 0–2 | year, month, day | event date / time filtering |
+| 3–5 | hour, minute, second | origin time (carried into output catalogs) |
+| 6 | **event ID** | matched against the SAC directory name |
+| 7–8 | latitude, longitude | maps, output catalogs |
+| 9 | depth (km) | scalar feature + HDF5 attribute |
+| 10 | **magnitude** | `--min-mag` / `--max-mag` filtering |
+| 11–13 | **strike, dip, rake** | converted to the moment-tensor training target |
+| 14–15 | nodal-plane uncertainties (deg) | label-uncertainty analysis in [RESULTS.md](RESULTS.md) |
+| 16–19 | additional HASH quality metrics | not used |
+| 20 | **quality grade** (`A`/`B`/`C`/`D`) | `--grades` filtering |
+
+Example line (the one used in the format tests):
+
+```
+ 2004  4 15  2 28  8.620 10000605  33.94280 -116.99420  15.760  3.350  145  85  -12  20  21   45  0.08   12  1.00 A
+```
+
+Grades follow the HASH convention (Hardebeck & Shearer, 2002, *BSSA* 92(6),
+2264–2276): **A** and **B** are well-constrained solutions, **C** and **D** are
+not. The released model was fine-tuned on A/B-grade mechanisms only.
+
+#### Checking your file before you run anything
+
+```bash
+python scripts/data_acquisition/check_catalog_format.py /path/to/ysh_all.log
+```
+
+This dissects the first lines column by column, reports the grade distribution,
+sanity-checks magnitude and dip ranges, and exits non-zero with a specific
+diagnosis if the layout does not match. The preprocessing scripts also fail
+loudly rather than silently mis-parsing: a catalog whose column 20 is not a
+quality grade raises `CatalogFormatError` instead of attaching wrong mechanisms
+to every event.
 
 ### What the raw SAC archive must contain
 
@@ -144,7 +210,9 @@ python scripts/preprocessing/preprocess_synthetic_hdf5.py \
 ## [3] Real-data HDF5 preprocessing — `preprocess_real_hdf5.py`
 
 Faithful port of the script that produced the released fine-tuning file
-(`socal_mxyz_data_rtz_lp2_ampr_ps_wlola.hdf5`). Parses a YSH-format catalog
+(`socal_mxyz_data_rtz_lp2_ampr_ps_wlola.hdf5`). Requires the YHS catalog file
+described in [Obtaining the YHS focal-mechanism catalog](#obtaining-the-yhs-focal-mechanism-catalog-ysh_alllog)
+(not shipped with this repository). Parses a YSH-format catalog
 directly and filters by magnitude, mechanism quality grade, data
 availability, and (optionally) exclusion of event IDs already present in
 another HDF5 — use this to guarantee evaluation sets disjoint from training.

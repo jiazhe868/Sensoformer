@@ -59,27 +59,83 @@ sys.path.insert(0, str(_Path(__file__).parent))
 from sdr_utils import sdr2mxyz_norm
 
 
-def parse_ysh_catalog(path):
-    """Parse a YSH-format catalog log. Returns a list of dicts sorted as
-    read (chronological). Columns: yr mo dy hr mn sec evid lat lon depth mag
-    strike dip rake ... grade."""
-    events = []
+# Column layout of the Yang-Hauksson-Shearer (YHS) focal-mechanism catalog.
+# See docs/DATA_PIPELINE.md ("Obtaining the YHS focal-mechanism catalog") for
+# where to get the file and the full column description.
+YSH_COL = {"year": 0, "month": 1, "day": 2, "hour": 3, "minute": 4, "second": 5,
+           "event_id": 6, "lat": 7, "lon": 8, "depth": 9, "magnitude": 10,
+           "strike": 11, "dip": 12, "rake": 13, "fpu1": 14, "fpu2": 15,
+           "quality": 20}
+YSH_MIN_COLUMNS = 21
+VALID_GRADES = set("ABCDZ")
+
+
+class CatalogFormatError(ValueError):
+    """The catalog file does not match the expected YHS column layout."""
+
+
+def parse_ysh_catalog(path, strict=True):
+    """Parse a YHS-format focal-mechanism catalog.
+
+    Expects whitespace-separated columns in the order documented in
+    YSH_COL (21 columns; see docs/DATA_PIPELINE.md). Returns a list of dicts
+    in file order (chronological).
+
+    Rather than guessing, this fails loudly when the file does not look like
+    a YHS catalog: a silently mis-parsed catalog would attach the wrong
+    mechanism or quality grade to every event.
+    """
+    events, skipped = [], 0
     with open(path) as f:
-        for line in f:
+        for lineno, line in enumerate(f, 1):
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
             t = line.split()
-            if len(t) < 15:
+            if len(t) < YSH_MIN_COLUMNS:
+                skipped += 1
+                if strict and skipped <= 3:
+                    raise CatalogFormatError(
+                        f"{path}:{lineno}: expected at least "
+                        f"{YSH_MIN_COLUMNS} whitespace-separated columns, got "
+                        f"{len(t)}.\n  line: {line.strip()[:120]}\n"
+                        f"  This does not look like a YHS catalog. See "
+                        f"docs/DATA_PIPELINE.md, or run\n"
+                        f"  python scripts/data_acquisition/check_catalog_format.py "
+                        f"{path}")
                 continue
             try:
+                grade = t[YSH_COL["quality"]]
+                if strict and grade not in VALID_GRADES:
+                    raise CatalogFormatError(
+                        f"{path}:{lineno}: column {YSH_COL['quality']} should be "
+                        f"the quality grade (one of {sorted(VALID_GRADES)}), "
+                        f"found {grade!r}. Column order probably differs from "
+                        f"the expected YHS layout; see docs/DATA_PIPELINE.md.")
                 events.append({
-                    "date": int(t[0]) * 10000 + int(t[1]) * 100 + int(t[2]),
-                    "event_id": t[6],
-                    "lat": float(t[7]), "lon": float(t[8]),
-                    "depth": float(t[9]), "magnitude": float(t[10]),
-                    "strike": float(t[11]), "dip": float(t[12]),
-                    "rake": float(t[13]), "grade": t[-1],
+                    "date": (int(t[YSH_COL["year"]]) * 10000
+                             + int(t[YSH_COL["month"]]) * 100
+                             + int(t[YSH_COL["day"]])),
+                    "event_id": t[YSH_COL["event_id"]],
+                    "lat": float(t[YSH_COL["lat"]]),
+                    "lon": float(t[YSH_COL["lon"]]),
+                    "depth": float(t[YSH_COL["depth"]]),
+                    "magnitude": float(t[YSH_COL["magnitude"]]),
+                    "strike": float(t[YSH_COL["strike"]]),
+                    "dip": float(t[YSH_COL["dip"]]),
+                    "rake": float(t[YSH_COL["rake"]]),
+                    "grade": grade,
                 })
-            except (ValueError, IndexError):
+            except (ValueError, IndexError) as exc:
+                if isinstance(exc, CatalogFormatError):
+                    raise
+                skipped += 1
                 continue
+    if not events:
+        raise CatalogFormatError(
+            f"No usable rows parsed from {path}. Check the file with\n"
+            f"  python scripts/data_acquisition/check_catalog_format.py {path}")
+    if skipped:
+        print(f"  note: skipped {skipped} unparseable catalog lines")
     return events
 
 
@@ -240,7 +296,10 @@ def process_event(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[1])
-    parser.add_argument("--catalog", required=True, help="YSH-format catalog log")
+    parser.add_argument("--catalog", required=True,
+                        help="YHS focal-mechanism catalog (e.g. ysh_all.log). "
+                             "Not shipped with this repo -- download it from SCEDC; "
+                             "see docs/DATA_PIPELINE.md")
     parser.add_argument("--data-root", required=True, help="Root of per-event SAC directories")
     parser.add_argument("--output", required=True, help="Output HDF5 path")
     parser.add_argument("--min-mag", type=float, default=2.5)
