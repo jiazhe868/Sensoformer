@@ -7,7 +7,7 @@ cache.
 | Repo | Type | Contents |
 | :--- | :--- | :--- |
 | [`jiazhe868/sensoformer`](https://huggingface.co/jiazhe868/sensoformer) | model | pretrained checkpoints + model card |
-| [`jiazhe868/sensoformer-data`](https://huggingface.co/datasets/jiazhe868/sensoformer-data) | dataset | preprocessed HDF5 datasets + dataset card |
+| [`jiazhe868/sensoformer-data`](https://huggingface.co/datasets/jiazhe868/sensoformer-data) | dataset | preprocessed HDF5 datasets, the YHS label catalog (`ysh_all.log`) + dataset card |
 
 Override either with `SENSOFORMER_HF_REPO` / `SENSOFORMER_HF_DATA_REPO` if you host your
 own copies.
@@ -19,6 +19,7 @@ python scripts/download_assets.py --list                        # what exists
 python scripts/download_assets.py --weights                     # both checkpoints, ~16 MB
 python scripts/download_assets.py --datasets socal-real         # 0.26 GB
 python scripts/download_assets.py --datasets synthetic-psdr --symlink   # 11.4 GB, no copy
+python scripts/download_assets.py --catalogs yhs-socal          # 31 MB label catalog
 ```
 
 Weights land in the HF cache and are resolved automatically by name. Datasets are placed
@@ -75,6 +76,9 @@ python scripts/upload_assets_to_hf.py \
     --dataset socal-real=/path/socal_mxyz_data_rtz_lp2_ampr_ps_wlola.hdf5 \
     --dataset synthetic-psdr=/path/syn_mt_data_realgeom_realvn_10w_ps_wcoda_wlola.hdf5 \
     --dataset synthetic-clean=/path/syn_mt_data_noaug.hdf5
+
+# the third-party label catalog (mirrored for reproducibility; cite the source)
+python scripts/upload_assets_to_hf.py --catalog yhs-socal=/path/ysh_all.log
 ```
 
 Uploads go over HTTP through `huggingface_hub` — **git-lfs is not required**. The cards in

@@ -1,5 +1,5 @@
 """
-Asset resolution for Sensoformer: pretrained weights and datasets.
+Asset resolution for Sensoformer: pretrained weights, datasets, catalogs.
 
 Assets are too large for git, so they live on the Hugging Face Hub and are
 fetched on demand (and cached) by this module. Everything here also accepts
@@ -76,6 +76,23 @@ DATASETS: Dict[str, Dict[str, Any]] = {
 }
 
 
+# Third-party catalogs redistributed for reproducibility. These are *labels*,
+# not waveforms: small plain-text files, each with its own citation duty.
+CATALOGS: Dict[str, Dict[str, Any]] = {
+    "yhs-socal": {
+        "filename": "ysh_all.log",
+        "about": "Yang-Hauksson-Shearer focal mechanisms for southern "
+                 "California, 1981-2024 (280,889 events); the label source "
+                 "for the real-data pipeline",
+        "source": "SCEDC, https://scedc.caltech.edu/data/alt-2011-yang-hauksson-shearer.html",
+        "cite": "Yang, W., E. Hauksson & P. M. Shearer (2012), Bull. Seismol. "
+                "Soc. Am. 102(3), 1179-1194, doi:10.1785/0120110311. Please "
+                "also acknowledge the SCEDC and the California Institute of "
+                "Technology.",
+    },
+}
+
+
 def _hf_download(repo_id: str, filename: str, repo_type: str) -> Path:
     try:
         from huggingface_hub import hf_hub_download
@@ -134,6 +151,27 @@ def resolve_dataset(name_or_path: str) -> Path:
     raise FileNotFoundError(
         f"'{name_or_path}' is neither an existing file nor a known dataset.\n"
         f"Known datasets: {', '.join(DATASETS)}"
+    )
+
+
+def resolve_catalog(name_or_path: str = "yhs-socal") -> Path:
+    """Return a local path for a catalog name, local file, or $SENSOFORMER_DATA entry.
+
+    Catalogs are third-party products redistributed here for reproducibility;
+    CATALOGS[name]["cite"] states the attribution each one requires.
+    """
+    p = Path(name_or_path).expanduser()
+    if p.exists():
+        return p
+    if name_or_path in CATALOGS:
+        fname = CATALOGS[name_or_path]["filename"]
+        local = LOCAL_DATA_DIR / fname
+        if local.exists():
+            return local
+        return _hf_download(HF_DATA_REPO, fname, "dataset")
+    raise FileNotFoundError(
+        f"'{name_or_path}' is neither an existing file nor a known catalog.\n"
+        f"Known catalogs: {', '.join(CATALOGS)}"
     )
 
 

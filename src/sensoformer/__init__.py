@@ -12,10 +12,12 @@ See docs/QUICKSTART.md for the end-to-end inference and fine-tuning paths.
 __version__ = "1.0.0"
 
 from .hub import (  # noqa: F401
+    CATALOGS,
     CHECKPOINTS,
     DATASETS,
     build_model,
     load_pretrained,
+    resolve_catalog,
     resolve_checkpoint,
     resolve_dataset,
 )
@@ -26,8 +28,10 @@ __all__ = [
     "build_model",
     "resolve_checkpoint",
     "resolve_dataset",
+    "resolve_catalog",
     "CHECKPOINTS",
     "DATASETS",
+    "CATALOGS",
 ]
 
 

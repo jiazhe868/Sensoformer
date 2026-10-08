@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-The YHS focal-mechanism catalog is third-party data that users must download
-themselves (docs/DATA_PIPELINE.md). Because a mis-ordered catalog would
+The YHS focal-mechanism catalog is third-party data mirrored in the Hugging
+Face dataset repo, but users may equally supply their own copy or a newer
+SCEDC download (docs/DATA_PIPELINE.md). Because a mis-ordered catalog would
 silently attach the wrong mechanism and quality grade to every event, the
 parser must fail loudly rather than guess.
 """

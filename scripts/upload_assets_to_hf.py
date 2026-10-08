@@ -23,6 +23,9 @@ python scripts/upload_assets_to_hf.py --weights-dir release_assets
 python scripts/upload_assets_to_hf.py \\
     --dataset socal-real=/path/socal_mxyz_data_rtz_lp2_ampr_ps_wlola.hdf5 \\
     --dataset synthetic-psdr=/path/syn_mt_data_realgeom_realvn_10w_ps_wcoda_wlola.hdf5
+
+# publish the third-party label catalog (small text file)
+python scripts/upload_assets_to_hf.py --catalog yhs-socal=/path/ysh_all.log
 """
 from __future__ import annotations
 
@@ -31,7 +34,8 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
-from sensoformer.hub import CHECKPOINTS, DATASETS, HF_DATA_REPO, HF_REPO
+from sensoformer.hub import (CATALOGS, CHECKPOINTS, DATASETS, HF_DATA_REPO,
+                             HF_REPO)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -45,6 +49,9 @@ def main():
     p.add_argument("--dataset", action="append", default=[], metavar="NAME=PATH",
                    help="dataset to upload, e.g. socal-real=/path/file.hdf5 "
                         "(repeatable)")
+    p.add_argument("--catalog", action="append", default=[], metavar="NAME=PATH",
+                   help="label catalog to upload, e.g. yhs-socal=/path/ysh_all.log "
+                        "(repeatable)")
     p.add_argument("--model-repo", default=HF_REPO)
     p.add_argument("--dataset-repo", default=HF_DATA_REPO)
     p.add_argument("--private", action="store_true",
@@ -52,8 +59,8 @@ def main():
     p.add_argument("--dry-run", action="store_true")
     args = p.parse_args()
 
-    if not args.weights_dir and not args.dataset:
-        p.error("give --weights-dir and/or --dataset NAME=PATH")
+    if not args.weights_dir and not args.dataset and not args.catalog:
+        p.error("give --weights-dir, --dataset NAME=PATH and/or --catalog NAME=PATH")
 
     plan = []   # (repo_id, repo_type, local_path, path_in_repo)
 
@@ -68,17 +75,21 @@ def main():
         if card.exists():
             plan.append((args.model_repo, "model", card, "README.md"))
 
-    for spec in args.dataset:
-        if "=" not in spec:
-            p.error(f"--dataset expects NAME=PATH, got {spec!r}")
-        name, path = spec.split("=", 1)
-        if name not in DATASETS:
-            p.error(f"unknown dataset {name!r}; known: {', '.join(DATASETS)}")
-        src = Path(path).expanduser()
-        if not src.exists():
-            p.error(f"file not found: {src}")
-        plan.append((args.dataset_repo, "dataset", src, DATASETS[name]["filename"]))
-    if args.dataset:
+    for flag, specs, registry in (("--dataset", args.dataset, DATASETS),
+                                  ("--catalog", args.catalog, CATALOGS)):
+        for spec in specs:
+            if "=" not in spec:
+                p.error(f"{flag} expects NAME=PATH, got {spec!r}")
+            name, path = spec.split("=", 1)
+            if name not in registry:
+                p.error(f"unknown {flag[2:]} {name!r}; "
+                        f"known: {', '.join(registry)}")
+            src = Path(path).expanduser()
+            if not src.exists():
+                p.error(f"file not found: {src}")
+            plan.append((args.dataset_repo, "dataset", src,
+                         registry[name]["filename"]))
+    if args.dataset or args.catalog:
         card = REPO_ROOT / "hf" / "DATASET_CARD.md"
         if card.exists():
             plan.append((args.dataset_repo, "dataset", card, "README.md"))

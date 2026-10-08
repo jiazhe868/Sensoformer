@@ -41,9 +41,12 @@ Build an HDF5 matching [DATA_FORMAT.md](DATA_FORMAT.md) — from raw SAC with
 
 ```bash
 python scripts/preprocessing/preprocess_real_hdf5.py \
-    --catalog /path/to/catalog.log --data-root /path/to/sac_archive \
+    --data-root /path/to/sac_archive \
     --output my_events.hdf5 --min-mag 2.5 --grades AB --workers 16
 ```
+
+`--catalog` defaults to `yhs-socal` (the Southern California mechanism catalog,
+fetched once from the Hub); point it at your own file for another region.
 
 — then predict. Labels are optional; without them you get predictions and no metrics.
 

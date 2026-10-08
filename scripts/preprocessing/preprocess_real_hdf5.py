@@ -21,11 +21,13 @@ trained on. Only the event selection and I/O plumbing are new:
 
 Example (200 most recent M>=2.5 grade-A/B events, disjoint from training):
   python scripts/preprocess_real_hdf5.py \
-      --catalog /path/to/archive/ysh_all.log \
       --data-root /path/to/archive \
       --output data/socal_m25_recent200.hdf5 \
       --min-mag 2.5 --grades AB --max-events 200 \
       --exclude-hdf5 data/socal_mxyz_data_rtz_lp2_ampr_ps_wlola.hdf5
+
+--catalog defaults to 'yhs-socal', which is fetched once from the Hugging Face
+dataset repo and cached; pass a path to use your own copy.
 """
 import argparse
 import concurrent.futures
@@ -33,10 +35,16 @@ import glob
 import os
 from collections import defaultdict
 
+import sys
+
 import h5py
 import numpy as np
 from obspy import read, Stream
 from tqdm import tqdm
+
+sys.path.insert(0, os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", "..", "src"))
+from sensoformer.hub import CATALOGS, resolve_catalog  # noqa: E402
 
 # ----------------------------------------------------------------------
 # Processing constants -- MUST match the original training preprocessing.
@@ -296,10 +304,11 @@ def process_event(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[1])
-    parser.add_argument("--catalog", required=True,
-                        help="YHS focal-mechanism catalog (e.g. ysh_all.log). "
-                             "Not shipped with this repo -- download it from SCEDC; "
-                             "see docs/DATA_PIPELINE.md")
+    parser.add_argument("--catalog", default="yhs-socal",
+                        help="YHS focal-mechanism catalog: a registry name "
+                             f"({', '.join(CATALOGS)}, fetched from the Hugging "
+                             "Face dataset repo and cached) or a path to your "
+                             "own ysh_all.log. See docs/DATA_PIPELINE.md")
     parser.add_argument("--data-root", required=True, help="Root of per-event SAC directories")
     parser.add_argument("--output", required=True, help="Output HDF5 path")
     parser.add_argument("--min-mag", type=float, default=2.5)
@@ -314,7 +323,9 @@ def main():
     parser.add_argument("--workers", type=int, default=24)
     args = parser.parse_args()
 
-    events = parse_ysh_catalog(args.catalog)
+    catalog_path = resolve_catalog(args.catalog)
+    print(f"Catalog: {catalog_path}")
+    events = parse_ysh_catalog(catalog_path)
     print(f"Catalog events: {len(events)}")
 
     exclude = set()

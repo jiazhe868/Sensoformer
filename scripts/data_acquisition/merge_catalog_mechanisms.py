@@ -55,7 +55,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[1])
     parser.add_argument("--events", default="events_cleaned.dat",
                         help="Cleaned STP event list (event ID in column 11)")
-    parser.add_argument("--mechanisms", default="ysh_all.log",
+    parser.add_argument("--mechanisms", default="ysh_all.log",  # or 'yhs-socal'
                         help="YSH-format mechanism catalog")
     parser.add_argument("--output", default="events_wmeca.dat")
     args = parser.parse_args()

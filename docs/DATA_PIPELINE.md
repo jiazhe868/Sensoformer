@@ -49,8 +49,8 @@ The real-data SAC archives are fetched from SCEDC with the STP client
 | 4. Merge catalog with YSH mechanisms | `merge_catalog_mechanisms.py` | `events_wmeca.dat` |
 
 Steps 1–3 fetch waveforms; the focal mechanisms themselves come from a separate
-catalog file you must download — see **Obtaining the YHS focal-mechanism
-catalog** just below.
+catalog file, which is fetched automatically from the Hugging Face dataset repo
+— see **The YHS focal-mechanism catalog** just below.
 
 Requirements: `stp`, `sac`, `gawk` on PATH; network access to SCEDC for
 steps 1–2. Step 4 substitutes the **auxiliary nodal plane** whenever the
@@ -58,27 +58,50 @@ catalog rake falls outside [−90°, 90°] (the moment tensor is invariant under
 this exchange — verified by `tests/test_acquisition_agreement.py`), so all
 stored rakes follow the convention assumed downstream.
 
-### Obtaining the YHS focal-mechanism catalog (`ysh_all.log`)
+### The YHS focal-mechanism catalog (`ysh_all.log`)
 
 Several steps below take a `--catalog` file, referred to throughout as
 `ysh_all.log`. This is the **Yang–Hauksson–Shearer (YHS) focal-mechanism catalog
 for Southern California**, produced with the HASH first-motion method and
-distributed by the Southern California Earthquake Data Center (SCEDC).
+distributed by the Southern California Earthquake Data Center (SCEDC). It
+supplies every *label* in the real-data pipeline.
 
-**It is third-party data and is deliberately not redistributed in this
-repository.** Download it yourself from SCEDC:
+It is a 31 MB text file — too large to keep in git, but small enough to ship
+alongside the datasets, so **the exact copy used in this work is mirrored in
+the Hugging Face dataset repo** and is fetched automatically the first time you
+need it:
+
+```bash
+# explicit download (31 MB, cached afterwards)
+python scripts/download_assets.py --catalogs yhs-socal
+
+# or just run the pipeline — `--catalog` defaults to the registry name
+python scripts/preprocessing/preprocess_real_hdf5.py --data-root ... --output ...
+```
+
+In Python:
+
+```python
+from sensoformer import resolve_catalog
+path = resolve_catalog()            # "yhs-socal" by default
+path = resolve_catalog("/my/own/ysh_all.log")   # local paths pass through
+```
+
+**This is third-party data.** The mirror exists for reproducibility, not to
+replace the source; the authoritative copy and its current terms live at SCEDC:
 
 - Catalog page: <https://scedc.caltech.edu/data/alt-2011-yang-hauksson-shearer.html>
 - SCEDC data portal: <https://scedc.caltech.edu/data/>
 
 The published catalog covers 1981–2010 (Yang, Hauksson & Shearer, 2012,
 *BSSA* 102(3), 1179–1194, [doi:10.1785/0120110311](https://doi.org/10.1785/0120110311));
-SCEDC distributes updated versions extending to the present. The file used in
-this work spans 1981–2024. Any file with the column layout below works — the
-code never assumes a particular time span or region, so an equivalent catalog
-for another network can be substituted.
+SCEDC distributes updated versions extending to the present. The mirrored file
+spans 1981-01-01 to 2024-12-31 and holds 280,889 events. Any file with the
+column layout below works — the code never assumes a particular time span or
+region, so an equivalent catalog for another network can be substituted.
 
-If you use this catalog, cite Yang et al. (2012) and acknowledge SCEDC.
+**If you use this catalog, cite Yang et al. (2012) and acknowledge the SCEDC.**
+This obligation is not waived by the convenience mirror.
 
 #### Expected column layout
 
@@ -104,14 +127,30 @@ Example line (the one used in the format tests):
 ```
 
 Grades follow the HASH convention (Hardebeck & Shearer, 2002, *BSSA* 92(6),
-2264–2276): **A** and **B** are well-constrained solutions, **C** and **D** are
-not. The released model was fine-tuned on A/B-grade mechanisms only.
+2264–2276) and act as a hard cap on the mean nodal-plane uncertainty in columns
+14–15. Measured directly on the mirrored file:
+
+| Grade | Events | Mean 1σ fault-plane uncertainty | Cap |
+| :---: | ---: | ---: | ---: |
+| A | 24,282 | 19.7° | ≤ 25° |
+| B | 57,158 | 28.1° | ≤ 35° |
+| C | 86,744 | 36.2° | ≤ 45° |
+| D | 112,705 | 43.5° | — |
+
+**A** and **B** are well-constrained solutions, **C** and **D** are not. The
+released model was fine-tuned on A/B-grade mechanisms only; the C/D events (71%
+of the catalog) are the ones the model supplies mechanisms for in
+[RESULTS.md](RESULTS.md).
 
 #### Checking your file before you run anything
 
 ```bash
 python scripts/data_acquisition/check_catalog_format.py /path/to/ysh_all.log
 ```
+
+(The mirrored copy already passes this check — it is the file the grade table
+above was measured from. Run it on a catalog you supply yourself, or on a newer
+download from SCEDC.)
 
 This dissects the first lines column by column, reports the grade distribution,
 sanity-checks magnitude and dip ranges, and exits non-zero with a specific
@@ -211,15 +250,15 @@ python scripts/preprocessing/preprocess_synthetic_hdf5.py \
 
 Faithful port of the script that produced the released fine-tuning file
 (`socal_mxyz_data_rtz_lp2_ampr_ps_wlola.hdf5`). Requires the YHS catalog file
-described in [Obtaining the YHS focal-mechanism catalog](#obtaining-the-yhs-focal-mechanism-catalog-ysh_alllog)
-(not shipped with this repository). Parses a YSH-format catalog
+described in [The YHS focal-mechanism catalog](#the-yhs-focal-mechanism-catalog-ysh_alllog)
+(fetched automatically by name). Parses a YSH-format catalog
 directly and filters by magnitude, mechanism quality grade, data
 availability, and (optionally) exclusion of event IDs already present in
 another HDF5 — use this to guarantee evaluation sets disjoint from training.
 
 ```bash
 python scripts/preprocessing/preprocess_real_hdf5.py \
-    --catalog <catalog>/ysh_all.log \
+    --catalog yhs-socal \
     --data-root <catalog_data_root> \
     --output <hdf5_dir>/socal_new.hdf5 \
     --min-mag 3.0 --grades AB --max-events 5000 \

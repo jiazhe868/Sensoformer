@@ -314,10 +314,17 @@ also accepts plain local paths, so the repo works offline.
 | `socal-real` | 2,435 real SoCal events (M ≥ 3.0) with analyst mechanisms | 0.26 GB |
 | `synthetic-psdr` | ~100k PSDR synthetic events on real geometries | 11.4 GB |
 | `synthetic-clean` | ~50k clean synthetics (no randomization), for the ablation | 5.4 GB |
+| `yhs-socal` | Yang–Hauksson–Shearer focal-mechanism catalog, 1981–2024 — the **labels** behind `socal-real` (third-party; cite [[11](#ref11)], [[19](#ref19)]) | 31 MB |
 
 ```bash
 python scripts/download_assets.py --list
+python scripts/download_assets.py --catalogs yhs-socal   # only needed to rebuild from raw SAC
 ```
+
+The catalog is mirrored so that the real-data pipeline is reproducible from raw
+waveforms; the authoritative copy is at the SCEDC [[19](#ref19)]. Its column layout
+and quality grades are explained in
+[docs/DATA_PIPELINE.md](docs/DATA_PIPELINE.md#the-yhs-focal-mechanism-catalog-ysh_alllog).
 
 Details, and how to publish your own: [docs/HUGGINGFACE.md](docs/HUGGINGFACE.md).
 
