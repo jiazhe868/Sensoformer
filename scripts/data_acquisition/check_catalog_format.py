@@ -22,8 +22,8 @@ LABELS = [
     (0, "year"), (1, "month"), (2, "day"), (3, "hour"), (4, "minute"),
     (5, "second"), (6, "event id"), (7, "latitude"), (8, "longitude"),
     (9, "depth (km)"), (10, "magnitude"), (11, "strike"), (12, "dip"),
-    (13, "rake"), (14, "nodal-plane uncertainty 1"),
-    (15, "nodal-plane uncertainty 2"), (20, "quality grade"),
+    (13, "rake"), (14, "fault-plane uncertainty"),
+    (15, "aux. fault-plane uncertainty"), (20, "quality grade"),
 ]
 
 

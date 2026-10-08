@@ -20,6 +20,8 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "preprocessing"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "src"))
+from sensoformer.hub import CATALOGS, resolve_catalog  # noqa: E402
 
 
 def calculate_auxiliary_plane(strike, dip, rake):
@@ -55,13 +57,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[1])
     parser.add_argument("--events", default="events_cleaned.dat",
                         help="Cleaned STP event list (event ID in column 11)")
-    parser.add_argument("--mechanisms", default="ysh_all.log",  # or 'yhs-socal'
-                        help="YSH-format mechanism catalog")
+    parser.add_argument("--mechanisms", default="ysh_all.log",
+                        help="YSH-format mechanism catalog: a path, or a registry "
+                             f"name ({', '.join(CATALOGS)}) for the mirrored copy")
     parser.add_argument("--output", default="events_wmeca.dat")
     args = parser.parse_args()
 
     mechanisms = {}
-    with open(args.mechanisms) as f:
+    with open(resolve_catalog(args.mechanisms)) as f:
         for line in f:
             parts = line.split()
             if len(parts) < 21:

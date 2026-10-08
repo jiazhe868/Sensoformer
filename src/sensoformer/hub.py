@@ -85,10 +85,11 @@ CATALOGS: Dict[str, Dict[str, Any]] = {
                  "California, 1981-2024 (280,889 events); the label source "
                  "for the real-data pipeline",
         "source": "SCEDC, https://scedc.caltech.edu/data/alt-2011-yang-hauksson-shearer.html",
-        "cite": "Yang, W., E. Hauksson & P. M. Shearer (2012), Bull. Seismol. "
-                "Soc. Am. 102(3), 1179-1194, doi:10.1785/0120110311. Please "
-                "also acknowledge the SCEDC and the California Institute of "
-                "Technology.",
+        "cite": "SCEDC (2013), Southern California Earthquake Data Center, "
+                "Caltech, doi:10.7909/C3WD3xH1; Yang, Hauksson & Shearer "
+                "(2012), BSSA 102(3), 1179-1194, doi:10.1785/0120110311; "
+                "Hauksson, Yang & Shearer (2012), BSSA 102(5), 2239-2244, "
+                "doi:10.1785/0120120010",
     },
 }
 

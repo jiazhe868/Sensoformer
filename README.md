@@ -28,6 +28,7 @@ Physics-Structured Randomization*](https://arxiv.org/abs/2601.06320) (arXiv:2601
 - [5. Install](#5-install)
 - [6. Usage](#6-usage)
 - [7. Pretrained models and datasets](#7-pretrained-models-and-datasets)
+  - [7.1 The focal-mechanism catalog (`ysh_all.log`)](#71-the-focal-mechanism-catalog-ysh_alllog)
 - [8. Repository map](#8-repository-map)
 - [9. Documentation](#9-documentation)
 - [10. Glossary](#10-glossary)
@@ -318,15 +319,181 @@ also accepts plain local paths, so the repo works offline.
 
 ```bash
 python scripts/download_assets.py --list
-python scripts/download_assets.py --catalogs yhs-socal   # only needed to rebuild from raw SAC
 ```
 
-The catalog is mirrored so that the real-data pipeline is reproducible from raw
-waveforms; the authoritative copy is at the SCEDC [[19](#ref19)]. Its column layout
-and quality grades are explained in
-[docs/DATA_PIPELINE.md](docs/DATA_PIPELINE.md#the-yhs-focal-mechanism-catalog-ysh_alllog).
-
 Details, and how to publish your own: [docs/HUGGINGFACE.md](docs/HUGGINGFACE.md).
+
+### 7.1 The focal-mechanism catalog (`ysh_all.log`)
+
+A model learns from examples whose answers are known. For real earthquakes the answer,
+the focal mechanism, comes from a **catalog** that seismologists computed with a
+classical method. Here that is HASH [[12](#ref12)], which fits the up/down direction of
+the first P-wave motion and the S/P amplitude ratios at each station. This repo uses the
+**Yang–Hauksson–Shearer (YHS) catalog** for southern California [[11](#ref11)],
+distributed by the Southern California Earthquake Data Center (SCEDC) [[19](#ref19)].
+In the code the file is called `ysh_all.log`.
+
+> **Do I need it?** Not to run the released model on the released data: `socal-real`
+> already carries its labels. You need the catalog to **rebuild the real HDF5 from raw
+> waveforms**, to **pick new events** (other magnitudes, grades or years), or to compare
+> predictions against catalog solutions.
+>
+> *Naming:* SCEDC's file is `YSH_2010.hash`, while its format sheet and the literature
+> say "YHS". Both mean the same catalog; the code follows the file and says `ysh`.
+
+#### What one line means
+
+One earthquake per line, 21 whitespace-separated columns. These are SCEDC's own column
+names, from the format sheet linked on the catalog page:
+
+```
+1981  1  1  4 13 55.710  3301565  33.25517 -115.96750   5.680  2.260  318  57 -168  37  39   18  0.17    0  0.00 C
+```
+
+| Col | Field | Example | Used by this repo for |
+| :-: | :--- | :-- | :--- |
+| 0–5 | year, month, day, hour, minute, second | `1981 1 1 4 13 55.710` | date filters, origin time |
+| 6 | event ID (SCSN "CID") | `3301565` | matched to the waveform directory name |
+| 7–9 | latitude, longitude (°), depth (km) | `33.25517 -115.96750 5.680` | maps; depth is a model input |
+| 10 | magnitude | `2.260` | `--min-mag` / `--max-mag` |
+| 11–13 | **strike, dip, rake** (°) | `318 57 -168` | **the training label** (converted to a moment tensor) |
+| 14 | fault-plane uncertainty (°) | `37` | label-noise analysis in [docs/RESULTS.md](docs/RESULTS.md) |
+| 15 | auxiliary fault-plane uncertainty (°) | `39` | label-noise analysis in [docs/RESULTS.md](docs/RESULTS.md) |
+| 16 | number of P-wave first motions | `18` | — |
+| 17 | misfit of first motions | `0.17` | — |
+| 18 | number of S/P amplitude ratios | `0` | — |
+| 19 | average log₁₀(S/P) misfit | `0.00` | — |
+| 20 | **quality** `A`/`B`/`C`/`D` | `C` | `--grades` |
+
+Strike, dip and rake are the beachball's three angles (§1). The quality grade says how
+much to trust them. In this file each grade is a hard cap on the uncertainty in columns
+14–15:
+
+| Grade | Events | Mean fault-plane uncertainty | Cap | Used here |
+| :-: | --: | --: | --: | :--- |
+| A | 24,282 | 19.7° | ≤ 25° | fine-tuning + evaluation |
+| B | 57,158 | 28.1° | ≤ 35° | fine-tuning + evaluation |
+| C | 86,744 | 36.2° | ≤ 45° | not as labels; the model supplies mechanisms here |
+| D | 112,705 | 43.5° | — | not as labels; the model supplies mechanisms here |
+
+#### Option A — use the mirrored copy (exact reproduction)
+
+The exact file used in this work, 280,889 events from 1981-01-01 to 2024-12-31, is
+mirrored in the [dataset repo](https://huggingface.co/datasets/jiazhe868/sensoformer-data)
+(31 MB). It downloads automatically the first time it is needed:
+
+```bash
+python scripts/download_assets.py --catalogs yhs-socal            # explicit, into ./data
+python scripts/preprocessing/preprocess_real_hdf5.py \
+    --data-root /path/to/sac_archive --output my_events.hdf5    # --catalog defaults to yhs-socal
+```
+
+To explore it in Python:
+
+```python
+import pandas as pd
+from sensoformer import resolve_catalog
+
+cols = ["year", "month", "day", "hour", "minute", "second", "event_id",
+        "lat", "lon", "depth_km", "mag", "strike", "dip", "rake",
+        "fpu", "aux_fpu", "n_polarities", "polarity_misfit",
+        "n_sp_ratios", "sp_misfit", "quality"]
+cat = pd.read_csv(resolve_catalog("yhs-socal"), sep=r"\s+", names=cols,
+                  dtype={"event_id": str})
+
+good = cat[cat.quality.isin(["A", "B"]) & (cat.mag >= 3.0)]
+print(len(cat), "events;", len(good), "are M>=3 with A/B mechanisms")
+```
+
+Use this copy when you want this repo's numbers. As shown below, a fresh download
+from SCEDC today gives a slightly different 2024.
+
+#### Option B — build it yourself from SCEDC
+
+SCEDC publishes the catalog as one file for 1981–2010 plus one file per year since 2011,
+all in the 21-column layout above. They are listed on the
+[catalog page](https://scedc.caltech.edu/data/alt-2011-yang-hauksson-shearer.html)
+under *Downloads*. To rebuild `ysh_all.log` for 1981–2024:
+
+```bash
+mkdir -p yhs_catalog && cd yhs_catalog
+BASE=https://scedc.caltech.edu/ftp/catalogs/hauksson/Socal_focal
+
+curl -fLO "$BASE/YSH_2010.hash"                           # 1981-2010, 179,255 events, 21 MB
+for y in $(seq 2011 2024); do
+    curl -fLO "$BASE/sc${y}_hash_ABCD_so.focmec.scedc"    # one file per year
+done
+
+cat YSH_2010.hash \
+    $(for y in $(seq 2011 2024); do echo sc${y}_hash_ABCD_so.focmec.scedc; done) \
+    > ysh_all.log
+
+cd .. && python scripts/data_acquisition/check_catalog_format.py yhs_catalog/ysh_all.log
+```
+
+The validator should end with `OK: this file matches the expected YHS layout.` Then pass
+the file explicitly, as `--catalog yhs_catalog/ysh_all.log`, or put it in
+`$SENSOFORMER_DATA` and it takes precedence over the mirror.
+
+Things to know:
+
+- **Don't also add `fm_2011_2013.hash`.** It is listed on the same page, but it is exactly
+  `sc2011 + sc2012 + sc2013` concatenated, so adding it duplicates 13,816 events.
+- **More recent years:** the page also lists `sc2025_hash_ABCD_so.focmec.scedc`. Change
+  `2024` to `2025` in both loops. The code assumes no particular time span.
+- **SCEDC revises recent years.** Rebuilt as above (checked 2026-10-08), the output
+  matches the mirror **byte for byte for 1981–2023**. 2024 differs, because SCEDC
+  re-issued that year's file; the page marks it *updated 02/27/2026*:
+
+  | 2024 portion | Mirror | SCEDC now |
+  | :--- | --: | --: |
+  | events | 5,780 | 5,709 |
+  | events in only this version | 215 | 144 |
+  | median mechanism change on shared events (Kagan angle) | — | 2.8° (1.4° for M ≥ 2.5) |
+  | shared events whose mechanism moved > 20° | — | 8.9% |
+
+  All 74 events from 2024 in `socal-real` are still in the revised file, with a median
+  change of 1.4°, well below the labels' own ~20° uncertainty. The released results are
+  unaffected, but a rebuilt 2024 won't reproduce them exactly. Use Option A to reproduce
+  this work, and Option B when you want the newest solutions.
+
+#### How the pipeline uses it
+
+| Step | Script | What it takes from the catalog |
+| :--- | :--- | :--- |
+| Merge mechanisms into the downloaded event list | `scripts/data_acquisition/merge_catalog_mechanisms.py --mechanisms yhs-socal` (or a path) | strike/dip/rake per event ID. If the rake falls outside [−90°, 90°], it switches to the other nodal plane, which describes the same mechanism, so all stored rakes share one convention. |
+| Build the model-ready HDF5 | `scripts/preprocessing/preprocess_real_hdf5.py --catalog yhs-socal` | event selection (`--min-mag`, `--max-mag`, `--grades`, `--max-events`, `--exclude-hdf5`). Strike/dip/rake become the five normalized moment-tensor labels stored with each event. |
+| Check a file before use | `scripts/data_acquisition/check_catalog_format.py FILE` | the column layout, grade counts, and magnitude/dip ranges |
+
+For example, to build the 200 most recent M ≥ 2.5, A/B-grade events that are **not** in
+the fine-tuning set:
+
+```bash
+python scripts/preprocessing/preprocess_real_hdf5.py \
+    --catalog yhs-socal --data-root /path/to/sac_archive \
+    --output data/socal_m25_recent200.hdf5 \
+    --min-mag 2.5 --grades AB --max-events 200 \
+    --exclude-hdf5 data/socal_mxyz_data_rtz_lp2_ampr_ps_wlola.hdf5
+```
+
+The parser reads columns by position, not by guessing. If column 20 is not a grade, or
+a line has fewer than 21 columns, it stops with a `CatalogFormatError` that names the
+line, rather than quietly attaching wrong mechanisms to every event.
+
+**Another region?** Any catalog in this 21-column layout works. Columns 0–13 and 20
+must be real values. The pipeline never reads columns 14–19, so placeholder zeros are
+fine there. Write the file, run the validator, and pass it as `--catalog`.
+
+#### Citing the catalog
+
+SCEDC's citation policy asks you to cite SCEDC and *"any references specified on the
+appropriate page"*. For this catalog, that means:
+
+- SCEDC (2013), Southern California Earthquake Data Center, Caltech, doi:10.7909/C3WD3xH1 [[19](#ref19)]
+- Yang, Hauksson & Shearer (2012), the focal-mechanism catalog [[11](#ref11)]
+- Hauksson, Yang & Shearer (2012), the relocated hypocenters it is built on [[20](#ref20)]
+
+This applies whether you use the mirror or your own download.
 
 ## 8. Repository map
 
@@ -426,7 +593,9 @@ All entries below were checked against the publisher or arXiv record.
 
 <a id="ref18"></a>[18] Vovk, V., Gammerman, A., & Shafer, G. (2005). *Algorithmic Learning in a Random World.* Springer.
 
-<a id="ref19"></a>[19] Southern California Earthquake Data Center (SCEDC), California Institute of Technology. Waveform and catalog data source. <https://scedc.caltech.edu>
+<a id="ref19"></a>[19] SCEDC (2013). *Southern California Earthquake Data Center.* Caltech. Dataset. [doi:10.7909/C3WD3xH1](https://doi.org/10.7909/C3WD3xH1). Source of the waveforms and the focal-mechanism catalog.
+
+<a id="ref20"></a>[20] Hauksson, E., Yang, W., & Shearer, P. M. (2012). *Waveform Relocated Earthquake Catalog for Southern California (1981 to June 2011).* Bulletin of the Seismological Society of America, 102(5), 2239–2244. [doi:10.1785/0120120010](https://doi.org/10.1785/0120120010)
 
 ## 12. Citation and license
 
@@ -442,4 +611,5 @@ All entries below were checked against the publisher or arXiv record.
 
 Machine-readable metadata: [CITATION.cff](CITATION.cff). Released under the MIT
 [LICENSE](LICENSE). Real waveform and catalog data courtesy of SCEDC [[19](#ref19)];
-please cite the data source and the mechanism catalog [[11](#ref11)] alongside this work.
+please cite the data source and the mechanism catalog [[11](#ref11), [20](#ref20)]
+alongside this work (see [§7.1](#citing-the-catalog)).

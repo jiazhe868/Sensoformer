@@ -100,8 +100,18 @@ spans 1981-01-01 to 2024-12-31 and holds 280,889 events. Any file with the
 column layout below works — the code never assumes a particular time span or
 region, so an equivalent catalog for another network can be substituted.
 
-**If you use this catalog, cite Yang et al. (2012) and acknowledge the SCEDC.**
-This obligation is not waived by the convenience mirror.
+Column names follow SCEDC's format sheet (linked from the catalog page as
+*1981-2010 Focal Mechanism Catalog Format Description*). To rebuild the file
+yourself from SCEDC's per-year downloads — and for how a fresh download differs
+from the mirror in 2024 — see
+[README §7.1, Option B](../README.md#option-b--build-it-yourself-from-scedc).
+
+**If you use this catalog, cite it as SCEDC's citation policy asks:** SCEDC
+(2013), doi:[10.7909/C3WD3xH1](https://doi.org/10.7909/C3WD3xH1), plus the
+references on the catalog page — Yang et al. (2012) above and Hauksson, Yang &
+Shearer (2012), *BSSA* 102(5), 2239–2244,
+[doi:10.1785/0120120010](https://doi.org/10.1785/0120120010). This applies to
+the mirror as well as your own download.
 
 #### Expected column layout
 
@@ -116,8 +126,12 @@ Whitespace-separated, **at least 21 columns**, one earthquake per line:
 | 9 | depth (km) | scalar feature + HDF5 attribute |
 | 10 | **magnitude** | `--min-mag` / `--max-mag` filtering |
 | 11–13 | **strike, dip, rake** | converted to the moment-tensor training target |
-| 14–15 | nodal-plane uncertainties (deg) | label-uncertainty analysis in [RESULTS.md](RESULTS.md) |
-| 16–19 | additional HASH quality metrics | not used |
+| 14 | fault-plane uncertainty (deg) | label-uncertainty analysis in [RESULTS.md](RESULTS.md) |
+| 15 | auxiliary fault-plane uncertainty (deg) | label-uncertainty analysis in [RESULTS.md](RESULTS.md) |
+| 16 | number of P-wave first motions | not used |
+| 17 | misfit of first motions | not used |
+| 18 | number of S/P amplitude ratios | not used |
+| 19 | average log10(S/P amplitude ratio) misfit | not used |
 | 20 | **quality grade** (`A`/`B`/`C`/`D`) | `--grades` filtering |
 
 Example line (the one used in the format tests):
@@ -127,10 +141,10 @@ Example line (the one used in the format tests):
 ```
 
 Grades follow the HASH convention (Hardebeck & Shearer, 2002, *BSSA* 92(6),
-2264–2276) and act as a hard cap on the mean nodal-plane uncertainty in columns
+2264–2276) and act as a hard cap on the mean fault-plane uncertainty in columns
 14–15. Measured directly on the mirrored file:
 
-| Grade | Events | Mean 1σ fault-plane uncertainty | Cap |
+| Grade | Events | Mean fault-plane uncertainty | Cap |
 | :---: | ---: | ---: | ---: |
 | A | 24,282 | 19.7° | ≤ 25° |
 | B | 57,158 | 28.1° | ≤ 35° |

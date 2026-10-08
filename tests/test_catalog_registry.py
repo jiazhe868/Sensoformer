@@ -26,8 +26,9 @@ def test_yhs_entry_names_its_obligations():
     assert "scedc" in entry["source"].lower()
     cite = entry["cite"]
     assert "Yang" in cite and "2012" in cite
-    assert "10.1785/0120110311" in cite
-    assert "SCEDC" in cite
+    assert "10.1785/0120110311" in cite          # Yang et al. (2012), mechanisms
+    assert "10.1785/0120120010" in cite          # Hauksson et al. (2012), locations
+    assert "10.7909/C3WD3xH1" in cite            # SCEDC dataset DOI
 
 
 def test_local_path_passes_through(tmp_path):
